@@ -59,6 +59,8 @@ export default function DailyEntry() {
   const [productSearch, setProductSearch] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
   const [showCustomerField, setShowCustomerField] = useState(false);
+  const [showProductSuggestions, setShowProductSuggestions] = useState(false);
+  const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
   const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("sales");
 
@@ -264,12 +266,14 @@ export default function DailyEntry() {
     form.setValue("productName", product.name);
     form.setValue("unitPrice", product.salePrice || "");
     setProductSearch(product.name);
+    setShowProductSuggestions(false);
   };
 
   const selectCustomer = (customer: Customer) => {
     form.setValue("customerId", customer.id);
     form.setValue("customerName", customer.name);
     setCustomerSearch(customer.name);
+    setShowCustomerSuggestions(false);
   };
 
   if (isLoading || !isAuthenticated) {
@@ -446,9 +450,11 @@ export default function DailyEntry() {
                                   onChange={(e) => {
                                     const value = e.target.value;
                                     setProductSearch(value);
+                                    setShowProductSuggestions(value.length >= 2);
                                     if (!value) {
                                       form.setValue("productId", "");
                                       form.setValue("unitPrice", "");
+                                      setShowProductSuggestions(false);
                                     }
                                   }}
                                 />
@@ -460,7 +466,7 @@ export default function DailyEntry() {
                         )}
                       />
                       {/* Product suggestions */}
-                      {productSearch.length >= 2 && filteredProducts.length > 0 && (
+                      {showProductSuggestions && filteredProducts.length > 0 && (
                         <div className="border rounded-md bg-background shadow-lg absolute z-10 w-full max-w-sm">
                           {filteredProducts.map((product: Product) => (
                             <div
@@ -550,8 +556,10 @@ export default function DailyEntry() {
                                     onChange={(e) => {
                                       const value = e.target.value;
                                       setCustomerSearch(value);
+                                      setShowCustomerSuggestions(value.length >= 2);
                                       if (!value) {
                                         form.setValue("customerId", "");
+                                        setShowCustomerSuggestions(false);
                                       }
                                     }}
                                   />
@@ -563,7 +571,7 @@ export default function DailyEntry() {
                           )}
                         />
                         {/* Customer suggestions */}
-                        {customerSearch.length >= 2 && filteredCustomers.length > 0 && (
+                        {showCustomerSuggestions && filteredCustomers.length > 0 && (
                           <div className="border rounded-md bg-background shadow-lg absolute z-10 w-full max-w-sm">
                             {filteredCustomers.map((customer: Customer) => (
                               <div
