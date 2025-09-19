@@ -1,18 +1,49 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
+import { es } from "date-fns/locale";
 
 export default function ApiStatus() {
   const today = format(new Date(), 'yyyy-MM-dd');
   
-  const { data: summary } = useQuery({
+  const { data: summary, isLoading: summaryLoading } = useQuery({
     queryKey: ['/api/dashboard/summary', today],
     retry: false,
   });
 
+  // Get API keys to find last usage
+  const { data: apiKeys, isLoading: apiKeysLoading } = useQuery({
+    queryKey: ['/api/api-keys'],
+    retry: false,
+  });
+
+  const isLoading = summaryLoading || apiKeysLoading;
+
   const apiSalesCount = (summary as any)?.apiSalesCount || 0;
-  const lastSync = "hace 2 minutos"; // This would come from actual API status
+  
+  // Find most recent API usage
+  const getLastSyncText = () => {
+    if (!apiKeys || !(apiKeys as any[]).length) {
+      return "API no configurada";
+    }
+    
+    const activeKey = (apiKeys as any[]).find((key: any) => key.isActive && key.lastUsed);
+    if (!activeKey?.lastUsed) {
+      return "sin sincronización";
+    }
+    
+    try {
+      return formatDistanceToNow(new Date(activeKey.lastUsed), { 
+        addSuffix: true, 
+        locale: es 
+      });
+    } catch {
+      return "fecha inválida";
+    }
+  };
+  
+  const lastSync = getLastSyncText();
 
   return (
     <Card>
@@ -24,7 +55,17 @@ export default function ApiStatus() {
       </CardHeader>
       
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="bg-muted rounded-lg p-4 animate-pulse">
+                <div className="h-4 bg-background rounded w-3/4 mb-2"></div>
+                <div className="h-6 bg-background rounded w-1/2"></div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
             <div className="flex items-center space-x-2 mb-2">
               <span className="w-3 h-3 bg-green-500 rounded-full"></span>
@@ -51,10 +92,11 @@ export default function ApiStatus() {
               <span className="font-medium text-purple-800">Consultas de Stock</span>
             </div>
             <p className="text-lg font-bold text-purple-800" data-testid="text-stock-queries">
-              24 consultas
+              {apiKeys && (apiKeys as any[]).some((k: any) => k.isActive && k.lastUsed) ? "consultas activas" : "sin consultas"}
             </p>
           </div>
-        </div>
+          </div>
+        )}
         
         <div className="mt-4">
           <Button 
