@@ -291,7 +291,7 @@ function ProductFormDialog({ onClose }: { onClose: () => void }) {
     const transformedData = {
       name: data.name,
       barcode: data.barcode || undefined,
-      categoryId: null, // For now, we'll set category handling later
+      category: data.category,
       costPrice: data.costPrice,
       salePrice: data.salePrice,
       currentStock: data.currentStock,
