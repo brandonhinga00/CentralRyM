@@ -276,6 +276,7 @@ export const insertSaleSchema = createInsertSchema(sales).omit({
 export const insertSaleItemSchema = createInsertSchema(saleItems).omit({
   id: true,
   createdAt: true,
+  saleId: true, // saleId is automatically added by the storage layer
 });
 
 export const insertPaymentSchema = createInsertSchema(payments).omit({

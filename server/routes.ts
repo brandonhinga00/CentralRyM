@@ -233,6 +233,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete('/api/customers/:id', isAuthenticated, async (req, res) => {
+    try {
+      await storage.deleteCustomer(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting customer:", error);
+      res.status(500).json({ message: "Error al eliminar cliente" });
+    }
+  });
+
   // Sale routes
   app.get('/api/sales', isAuthenticated, async (req, res) => {
     try {
