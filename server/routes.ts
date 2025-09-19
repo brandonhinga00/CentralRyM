@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { z } from "zod";
+import crypto from "crypto";
 import { 
   insertProductSchema,
   insertCustomerSchema,
@@ -15,8 +16,6 @@ import {
   insertApiKeySchema,
   insertCashClosingSchema
 } from "@shared/schema";
-import bcrypt from "bcrypt";
-import crypto from "crypto";
 
 // Middleware to validate API key for mobile assistant
 const validateApiKey = async (req: any, res: any, next: any) => {
