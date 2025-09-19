@@ -33,7 +33,7 @@ export default function Sidebar() {
           const isActive = location === item.href;
           return (
             <Link key={item.name} href={item.href}>
-              <a
+              <div
                 className={cn(
                   "flex items-center space-x-3 p-3 rounded-lg font-medium transition-colors",
                   isActive
@@ -44,7 +44,7 @@ export default function Sidebar() {
               >
                 <span className="material-icons text-xl">{item.icon}</span>
                 <span>{item.name}</span>
-              </a>
+              </div>
             </Link>
           );
         })}
