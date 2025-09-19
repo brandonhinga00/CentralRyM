@@ -3,6 +3,13 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
+
+// Set environment explicitly based on NODE_ENV
+if (!process.env.NODE_ENV) {
+  process.env.NODE_ENV = 'development';
+}
+app.set('env', process.env.NODE_ENV);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -37,7 +44,9 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const server = await registerRoutes(app);
+  // Determine environment mode based on NODE_ENV for production robustness
+  const isDevelopment = process.env.NODE_ENV !== 'production';
+  const server = await registerRoutes(app, isDevelopment);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -50,8 +59,12 @@ app.use((req, res, next) => {
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
+  if (isDevelopment) {
+    if (server) {
+      await setupVite(app, server);
+    } else {
+      throw new Error("HTTP server required for development mode");
+    }
   } else {
     serveStatic(app);
   }
@@ -61,11 +74,20 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || '5000', 10);
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
+  
+  if (isDevelopment && server) {
+    // In development, use the HTTP server for HMR support
+    server.listen({
+      port,
+      host: "0.0.0.0",
+      reusePort: true,
+    }, () => {
+      log(`serving on port ${port} (development) - NODE_ENV: ${process.env.NODE_ENV}`);
+    });
+  } else {
+    // In production, use Express app directly
+    app.listen(port, "0.0.0.0", () => {
+      log(`serving on port ${port} (production) - NODE_ENV: ${process.env.NODE_ENV}`);
+    });
+  }
 })();

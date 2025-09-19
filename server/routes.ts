@@ -45,7 +45,7 @@ const validateApiKey = async (req: any, res: any, next: any) => {
   }
 };
 
-export async function registerRoutes(app: Express): Promise<Server> {
+export async function registerRoutes(app: Express, needsHttpServer: boolean = false): Promise<Server | void> {
   // Auth middleware
   await setupAuth(app);
 
@@ -888,6 +888,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const httpServer = createServer(app);
-  return httpServer;
+  // Only create HTTP server if needed (for development HMR)
+  if (needsHttpServer) {
+    const httpServer = createServer(app);
+    return httpServer;
+  }
+  
+  // In production, return void - Express app will be used directly
+  return;
 }
