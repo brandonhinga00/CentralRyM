@@ -92,6 +92,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/customers/with-debt', isAuthenticated, async (req, res) => {
+    try {
+      const debtors = await storage.getCustomersWithDebt();
+      res.json(debtors); // All customers with debt
+    } catch (error) {
+      console.error("Error getting customers with debt:", error);
+      res.status(500).json({ message: "Error al obtener clientes con deuda" });
+    }
+  });
+
   app.get('/api/dashboard/recent-sales/:date', isAuthenticated, async (req, res) => {
     try {
       const { date } = req.params;
@@ -297,6 +307,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/payments', isAuthenticated, async (req, res) => {
     try {
       const paymentData = insertPaymentSchema.parse(req.body);
+      
+      // Validate payment amount is positive
+      const paymentAmount = Number(paymentData.amount);
+      if (!isFinite(paymentAmount) || paymentAmount <= 0) {
+        return res.status(400).json({ 
+          message: "El monto del pago debe ser un número positivo válido" 
+        });
+      }
+      
+      // Validate overpayment prevention
+      if (paymentData.customerId) {
+        const customer = await storage.getCustomer(paymentData.customerId);
+        if (customer) {
+          const currentDebt = Number(customer.currentDebt || 0);
+          
+          if (paymentAmount > currentDebt) {
+            return res.status(400).json({ 
+              message: `El pago de $${paymentAmount.toFixed(2)} excede la deuda actual de $${currentDebt.toFixed(2)}` 
+            });
+          }
+        }
+      }
+      
       const payment = await storage.createPayment(paymentData);
       res.status(201).json(payment);
     } catch (error) {

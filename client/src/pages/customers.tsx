@@ -22,12 +22,12 @@ const customerSchema = z.object({
   email: z.string().email("Email inválido").optional().or(z.literal("")),
   phone: z.string().optional(),
   address: z.string().optional(),
-  documentNumber: z.string().optional(),
+  idDocument: z.string().optional(),
   creditLimit: z.string().optional(),
 });
 
 const paymentSchema = z.object({
-  amount: z.string().min(1, "El monto es requerido"),
+  amount: z.string().min(1, "El monto es requerido").refine(val => !isNaN(parseFloat(val)) && parseFloat(val) > 0, "El monto debe ser un número válido mayor a cero"),
   paymentMethod: z.string().min(1, "El método de pago es requerido"),
   notes: z.string().optional(),
 });
@@ -54,20 +54,27 @@ export default function Customers() {
 
   // Load customers with debt for summary
   const { data: customersWithDebt } = useQuery({
+    queryKey: ['/api/customers/with-debt'],
+    enabled: isAuthenticated,
+    retry: false,
+  });
+  
+  // Load top debtors for display
+  const { data: topDebtors } = useQuery({
     queryKey: ['/api/dashboard/top-debtors'],
     enabled: isAuthenticated,
     retry: false,
   });
 
-  const filteredCustomers = customers ? (customers as any[]).filter((customer: any) =>
+  const filteredCustomers = Array.isArray(customers) ? customers.filter((customer: any) =>
     customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (customer.phone && customer.phone.includes(searchTerm)) ||
-    (customer.documentNumber && customer.documentNumber.includes(searchTerm))
+    (customer.idDocument && customer.idDocument.includes(searchTerm))
   ) : [];
 
-  const totalCustomers = customers ? (customers as any[]).length : 0;
-  const customersWithDebtCount = customersWithDebt ? (customersWithDebt as any[]).length : 0;
-  const totalDebt = customersWithDebt ? (customersWithDebt as any[]).reduce((sum: number, customer: any) => sum + Number(customer.currentDebt || 0), 0) : 0;
+  const totalCustomers = Array.isArray(customers) ? customers.length : 0;
+  const customersWithDebtCount = Array.isArray(customersWithDebt) ? customersWithDebt.length : 0;
+  const totalDebt = Array.isArray(customersWithDebt) ? customersWithDebt.reduce((sum: number, customer: any) => sum + Number(customer.currentDebt || 0), 0) : 0;
 
   // Form handling
   const form = useForm<CustomerFormData>({
@@ -77,7 +84,7 @@ export default function Customers() {
       email: "",
       phone: "",
       address: "",
-      documentNumber: "",
+      idDocument: "",
       creditLimit: "",
     },
   });
@@ -99,7 +106,7 @@ export default function Customers() {
         email: editingCustomer.email || "",
         phone: editingCustomer.phone || "",
         address: editingCustomer.address || "",
-        documentNumber: editingCustomer.documentNumber || "",
+        idDocument: editingCustomer.idDocument || "",
         creditLimit: editingCustomer.creditLimit || "",
       });
     } else {
@@ -108,7 +115,7 @@ export default function Customers() {
         email: "",
         phone: "",
         address: "",
-        documentNumber: "",
+        idDocument: "",
         creditLimit: "",
       });
     }
@@ -127,6 +134,7 @@ export default function Customers() {
       setIsDialogOpen(false);
       setEditingCustomer(null);
       queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/customers/with-debt'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/top-debtors'] });
     },
     onError: (error) => {
@@ -162,6 +170,7 @@ export default function Customers() {
       setIsDialogOpen(false);
       setEditingCustomer(null);
       queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/customers/with-debt'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/top-debtors'] });
     },
     onError: (error) => {
@@ -195,6 +204,7 @@ export default function Customers() {
         description: "El cliente se eliminó exitosamente.",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/customers/with-debt'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/top-debtors'] });
     },
     onError: (error) => {
@@ -235,6 +245,7 @@ export default function Customers() {
       setIsPaymentDialogOpen(false);
       setPaymentCustomer(null);
       queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/customers/with-debt'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/top-debtors'] });
       paymentForm.reset();
     },
@@ -283,6 +294,37 @@ export default function Customers() {
   };
 
   const handlePaymentSubmit = (data: PaymentFormData) => {
+    // Validate payment amount doesn't exceed current debt
+    const currentDebt = Number(paymentCustomer?.currentDebt || 0);
+    const paymentAmount = parseFloat(data.amount);
+    
+    if (isNaN(paymentAmount)) {
+      toast({
+        title: "Error de validación",
+        description: "El monto debe ser un número válido",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (paymentAmount > currentDebt) {
+      toast({
+        title: "Error de validación",
+        description: `El pago no puede exceder la deuda actual de $${currentDebt.toFixed(2)}`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (paymentAmount <= 0) {
+      toast({
+        title: "Error de validación",
+        description: "El monto del pago debe ser mayor a cero",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     createPaymentMutation.mutate(data);
   };
 
@@ -403,7 +445,7 @@ export default function Customers() {
                       />
                       <FormField
                         control={form.control}
-                        name="documentNumber"
+                        name="idDocument"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>DNI/CUIT</FormLabel>
@@ -520,7 +562,7 @@ export default function Customers() {
           </Card>
 
           {/* Deudores Principales */}
-          {customersWithDebt && (customersWithDebt as any[]).length > 0 && (
+          {Array.isArray(topDebtors) && topDebtors.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2 text-red-600">
@@ -530,7 +572,7 @@ export default function Customers() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {(customersWithDebt as any[]).slice(0, 5).map((customer: any) => (
+                  {topDebtors.slice(0, 5).map((customer: any) => (
                     <div key={customer.id} className="flex items-center justify-between p-3 border border-red-200 rounded-lg bg-red-50" data-testid={`debtor-card-${customer.id}`}>
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
@@ -614,7 +656,7 @@ export default function Customers() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm">{customer.documentNumber || '-'}</span>
+                          <span className="text-sm">{customer.idDocument || '-'}</span>
                         </TableCell>
                         <TableCell>
                           {Number(customer.currentDebt || 0) > 0 ? (
@@ -685,6 +727,123 @@ export default function Customers() {
           </Card>
         </div>
       </main>
+
+      {/* Payment Dialog */}
+      <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Registrar Pago</DialogTitle>
+            <DialogDescription>
+              Cliente: {paymentCustomer?.name} - Deuda: ${Number(paymentCustomer?.currentDebt || 0).toFixed(2)}
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...paymentForm}>
+            <form onSubmit={paymentForm.handleSubmit(handlePaymentSubmit)} className="space-y-4">
+              <FormField
+                control={paymentForm.control}
+                name="amount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Monto</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.01" placeholder="0.00" {...field} data-testid="input-payment-amount" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={paymentForm.control}
+                name="paymentMethod"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Método de Pago</FormLabel>
+                    <FormControl>
+                      <select {...field} className="w-full p-2 border rounded-md" data-testid="select-payment-method">
+                        <option value="">Seleccionar método</option>
+                        <option value="efectivo">Efectivo</option>
+                        <option value="transferencia">Transferencia</option>
+                        <option value="tarjeta">Tarjeta</option>
+                      </select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={paymentForm.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Notas</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Notas adicionales (opcional)" {...field} data-testid="input-payment-notes" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="flex justify-end space-x-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setIsPaymentDialogOpen(false)}
+                  data-testid="button-cancel-payment"
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={createPaymentMutation.isPending}
+                  data-testid="button-save-payment"
+                >
+                  {createPaymentMutation.isPending ? "Registrando..." : "Registrar Pago"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Account Statement Dialog */}
+      <Dialog open={isAccountDialogOpen} onOpenChange={setIsAccountDialogOpen}>
+        <DialogContent className="sm:max-w-[700px]">
+          <DialogHeader>
+            <DialogTitle>Estado de Cuenta</DialogTitle>
+            <DialogDescription>
+              Cliente: {accountCustomer?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+              <div>
+                <p className="font-medium">Deuda Actual</p>
+                <p className="text-2xl font-bold text-red-600">${Number(accountCustomer?.currentDebt || 0).toFixed(2)}</p>
+              </div>
+              <div>
+                <p className="font-medium">Límite de Crédito</p>
+                <p className="text-lg">${Number(accountCustomer?.creditLimit || 0).toFixed(2)}</p>
+              </div>
+            </div>
+            <div className="border rounded-lg p-4">
+              <h4 className="font-medium mb-3">Historial de Movimientos</h4>
+              <div className="text-center py-4 text-muted-foreground">
+                <CreditCard className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>Funcionalidad de estado de cuenta completo</p>
+                <p className="text-sm">próximamente disponible</p>
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <Button 
+                onClick={() => setIsAccountDialogOpen(false)}
+                data-testid="button-close-account"
+              >
+                Cerrar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
