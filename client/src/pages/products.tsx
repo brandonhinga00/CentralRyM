@@ -10,6 +10,8 @@ import Sidebar from "@/components/layout/sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Package, Plus, Search, Edit, Trash2, AlertTriangle } from "lucide-react";
@@ -27,11 +29,157 @@ const productSchema = z.object({
 
 type ProductFormData = z.infer<typeof productSchema>;
 
+// Product Filters Dialog Component
+function ProductFiltersDialog({ 
+  filters, 
+  onFiltersChange, 
+  onClose 
+}: { 
+  filters: any; 
+  onFiltersChange: (filters: any) => void; 
+  onClose: () => void; 
+}) {
+  const handleFilterChange = (key: string, value: any) => {
+    onFiltersChange({ ...filters, [key]: value });
+  };
+
+  const clearAllFilters = () => {
+    onFiltersChange({
+      category: "",
+      minPrice: "",
+      maxPrice: "",
+      stockLevel: "",
+      showLowStockOnly: false
+    });
+  };
+
+  const hasActiveFilters = Object.values(filters).some(v => v !== "" && v !== false);
+
+  return (
+    <DialogContent className="sm:max-w-[500px]" data-testid="dialog-product-filters">
+      <DialogHeader>
+        <DialogTitle>Filtros de Productos</DialogTitle>
+        <DialogDescription>
+          Filtra los productos por categoría, precio, y nivel de stock
+        </DialogDescription>
+      </DialogHeader>
+      
+      <div className="space-y-4">
+        {/* Category Filter */}
+        <div className="space-y-2">
+          <Label htmlFor="category-filter">Categoría</Label>
+          <Input
+            id="category-filter"
+            placeholder="Ej: Bebidas, Golosinas..."
+            value={filters.category}
+            onChange={(e) => handleFilterChange("category", e.target.value)}
+            data-testid="input-filter-category"
+          />
+        </div>
+
+        {/* Price Range Filter */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="min-price">Precio Mínimo</Label>
+            <Input
+              id="min-price"
+              type="number"
+              placeholder="0.00"
+              value={filters.minPrice}
+              onChange={(e) => handleFilterChange("minPrice", e.target.value)}
+              data-testid="input-filter-min-price"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="max-price">Precio Máximo</Label>
+            <Input
+              id="max-price"
+              type="number"
+              placeholder="999.99"
+              value={filters.maxPrice}
+              onChange={(e) => handleFilterChange("maxPrice", e.target.value)}
+              data-testid="input-filter-max-price"
+            />
+          </div>
+        </div>
+
+        {/* Stock Level Filter */}
+        <div className="space-y-2">
+          <Label>Nivel de Stock</Label>
+          <Select
+            value={filters.stockLevel}
+            onValueChange={(value) => handleFilterChange("stockLevel", value)}
+          >
+            <SelectTrigger data-testid="select-stock-level">
+              <SelectValue placeholder="Todos los niveles" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Todos los niveles</SelectItem>
+              <SelectItem value="low">Stock Bajo (≤ mínimo)</SelectItem>
+              <SelectItem value="normal">Stock Normal</SelectItem>
+              <SelectItem value="high">Stock Alto</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Low Stock Only Toggle */}
+        <div className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            id="low-stock-only"
+            checked={filters.showLowStockOnly}
+            onChange={(e) => handleFilterChange("showLowStockOnly", e.target.checked)}
+            className="rounded border-gray-300"
+            data-testid="checkbox-low-stock-only"
+          />
+          <Label htmlFor="low-stock-only" className="text-sm">
+            Mostrar solo productos con stock bajo
+          </Label>
+        </div>
+      </div>
+
+      <div className="flex justify-between pt-4">
+        <Button 
+          variant="outline" 
+          onClick={clearAllFilters}
+          disabled={!hasActiveFilters}
+          data-testid="button-clear-filters"
+        >
+          Limpiar Filtros
+        </Button>
+        <div className="space-x-2">
+          <Button 
+            variant="outline" 
+            onClick={onClose}
+            data-testid="button-cancel-filters"
+          >
+            Cancelar
+          </Button>
+          <Button 
+            onClick={onClose}
+            data-testid="button-apply-filters"
+          >
+            Aplicar Filtros
+          </Button>
+        </div>
+      </div>
+    </DialogContent>
+  );
+}
+
 export default function Products() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
+  const [filters, setFilters] = useState({
+    category: "",
+    minPrice: "",
+    maxPrice: "",
+    stockLevel: "", // all, low, normal, high
+    showLowStockOnly: false
+  });
 
   // Load products
   const { data: products, isLoading: productsLoading, error: productsError } = useQuery({
@@ -45,10 +193,39 @@ export default function Products() {
     enabled: isAuthenticated,
   });
 
-  const filteredProducts = products ? (products as any[]).filter((product: any) => 
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (product.barcode && product.barcode.includes(searchTerm))
-  ) : [];
+  const filteredProducts = products ? (products as any[]).filter((product: any) => {
+    // Basic search filter
+    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (product.barcode && product.barcode.includes(searchTerm));
+    
+    // Category filter
+    const matchesCategory = !filters.category || 
+      product.category.toLowerCase().includes(filters.category.toLowerCase());
+    
+    // Price range filter
+    const salePrice = parseFloat(product.salePrice);
+    const matchesMinPrice = !filters.minPrice || salePrice >= parseFloat(filters.minPrice);
+    const matchesMaxPrice = !filters.maxPrice || salePrice <= parseFloat(filters.maxPrice);
+    
+    // Stock level filter
+    const currentStock = parseInt(product.currentStock);
+    const minStock = parseInt(product.minStock);
+    let matchesStockLevel = true;
+    
+    if (filters.stockLevel === "low") {
+      matchesStockLevel = currentStock <= minStock;
+    } else if (filters.stockLevel === "normal") {
+      matchesStockLevel = currentStock > minStock && currentStock <= minStock * 2;
+    } else if (filters.stockLevel === "high") {
+      matchesStockLevel = currentStock > minStock * 2;
+    }
+    
+    // Low stock only filter
+    const matchesLowStockOnly = !filters.showLowStockOnly || currentStock <= minStock;
+    
+    return matchesSearch && matchesCategory && matchesMinPrice && 
+           matchesMaxPrice && matchesStockLevel && matchesLowStockOnly;
+  }) : [];
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -114,9 +291,22 @@ export default function Products() {
                     data-testid="input-search-products"
                   />
                 </div>
-                <Button variant="outline" data-testid="button-filter">
-                  Filtros
-                </Button>
+                <Dialog open={isFilterDialogOpen} onOpenChange={setIsFilterDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" data-testid="button-filter">
+                      Filtros {Object.values(filters).some(v => v !== "" && v !== false) && (
+                        <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
+                          {Object.values(filters).filter(v => v !== "" && v !== false).length}
+                        </span>
+                      )}
+                    </Button>
+                  </DialogTrigger>
+                  <ProductFiltersDialog 
+                    filters={filters}
+                    onFiltersChange={setFilters}
+                    onClose={() => setIsFilterDialogOpen(false)}
+                  />
+                </Dialog>
                 <Button variant="outline" data-testid="button-import">
                   Importar
                 </Button>
