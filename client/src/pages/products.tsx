@@ -114,7 +114,7 @@ function ProductFiltersDialog({
               <SelectValue placeholder="Todos los niveles" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos los niveles</SelectItem>
+              <SelectItem value="all">Todos los niveles</SelectItem>
               <SelectItem value="low">Stock Bajo (≤ mínimo)</SelectItem>
               <SelectItem value="normal">Stock Normal</SelectItem>
               <SelectItem value="high">Stock Alto</SelectItem>
@@ -177,7 +177,7 @@ export default function Products() {
     category: "",
     minPrice: "",
     maxPrice: "",
-    stockLevel: "", // all, low, normal, high
+    stockLevel: "all", // all, low, normal, high
     showLowStockOnly: false
   });
 
@@ -218,6 +218,8 @@ export default function Products() {
       matchesStockLevel = currentStock > minStock && currentStock <= minStock * 2;
     } else if (filters.stockLevel === "high") {
       matchesStockLevel = currentStock > minStock * 2;
+    } else if (filters.stockLevel === "all" || !filters.stockLevel) {
+      matchesStockLevel = true;
     }
     
     // Low stock only filter
