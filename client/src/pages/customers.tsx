@@ -25,7 +25,7 @@ const customerSchema = z.object({
   phone: z.string().optional(),
   address: z.string().optional(),
   idDocument: z.string().optional(),
-  creditLimit: z.string().optional(),
+  creditLimit: z.string().optional().transform(val => val && val.trim() !== "" ? val : "0"),
 });
 
 const paymentSchema = z.object({
