@@ -67,19 +67,28 @@ export default function Finances() {
   // API queries for financial data with error handling
   const { data: dailySales = [], isLoading: salesLoading, error: salesError } = useQuery({
     queryKey: ['/api/sales', selectedDate],
-    queryFn: () => apiRequest("GET", `/api/sales?startDate=${selectedDate}&endDate=${selectedDate}`),
+    queryFn: async () => {
+      const response = await apiRequest("GET", `/api/sales?startDate=${selectedDate}&endDate=${selectedDate}`);
+      return await response.json();
+    },
     enabled: !!selectedDate,
   });
 
   const { data: dailyExpenses = [], isLoading: expensesLoading, error: expensesError } = useQuery({
     queryKey: ['/api/expenses', selectedDate],
-    queryFn: () => apiRequest("GET", `/api/expenses?startDate=${selectedDate}&endDate=${selectedDate}`),
+    queryFn: async () => {
+      const response = await apiRequest("GET", `/api/expenses?startDate=${selectedDate}&endDate=${selectedDate}`);
+      return await response.json();
+    },
     enabled: !!selectedDate,
   });
 
   const { data: dailyPayments = [], isLoading: paymentsLoading, error: paymentsError } = useQuery({
     queryKey: ['/api/payments', selectedDate],
-    queryFn: () => apiRequest("GET", `/api/payments?startDate=${selectedDate}&endDate=${selectedDate}`),
+    queryFn: async () => {
+      const response = await apiRequest("GET", `/api/payments?startDate=${selectedDate}&endDate=${selectedDate}`);
+      return await response.json();
+    },
     enabled: !!selectedDate,
   });
 
