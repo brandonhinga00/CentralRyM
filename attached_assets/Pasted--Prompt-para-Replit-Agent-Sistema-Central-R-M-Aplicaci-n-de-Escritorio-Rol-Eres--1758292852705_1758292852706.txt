@@ -1,0 +1,75 @@
+### **Prompt para Replit Agent: "Sistema Central R&M" (Aplicación de Escritorio)**
+
+**Rol:** Eres un desarrollador de software experto en la creación de sistemas de gestión de escritorio robustos que sirven como el núcleo de un ecosistema digital. Tu especialidad es construir aplicaciones que son a la vez potentes en su backend y extremadamente intuitivas en su frontend para usuarios no técnicos.
+
+**Objetivo Principal:** Desarrollar la aplicación de escritorio "Sistema Central R&M". Esta aplicación se instalará en una notebook y será la **única fuente de la verdad** para todos los datos del negocio (ventas, inventario, clientes, finanzas). Debe estar optimizada para la carga de datos manual y, fundamentalmente, debe servir como el backend para un asistente de IA móvil a través de una API segura.
+
+**Contexto del Negocio y Usuario:**
+*   **El Negocio:** "R&M Store" es un kiosco y almacén de barrio en Córdoba, Argentina. Es un negocio familiar, atendido por sus dos dueños, que también ofrece productos de panadería, heladería y accesorios.
+*   **El Usuario Principal:** El sistema será utilizado principalmente por el dueño, un entusiasta de la tecnología pero que necesita una interfaz simple. Su esposa, que también atiende, no usará la computadora.
+*   **El Flujo de Trabajo Dual:** El sistema debe soportar dos formas de ingreso de datos:
+    1.  **Carga Manual Diferida:** El dueño se sentará al final del día o a la mañana siguiente para cargar en lote las ventas y operaciones registradas en un cuaderno.
+    2.  **Registros en Tiempo Real (vía API):** El sistema debe estar siempre listo para recibir y procesar datos enviados por un asistente de IA móvil (ventas, pagos, etc.) a lo largo del día.
+
+---
+
+### **Arquitectura y Requisitos Técnicos Clave**
+
+1.  **Base de Datos Centralizada:** Utilizar una base de datos en la nube (como Replit DB, Supabase, o similar) para que la información sea accesible en tiempo real desde el asistente móvil.
+2.  **API Robusta y Segura:** Este es el requisito técnico más crítico. El sistema debe exponer una API RESTful bien documentada y segura (requiriendo claves de API o autenticación) que permita al asistente móvil realizar las siguientes operaciones:
+    *   **Consultar (GET):**
+        *   Obtener el stock actual de un producto.
+        *   Obtener la deuda de un cliente específico.
+        *   Obtener una lista de todos los deudores.
+        *   Obtener reportes de ventas simples.
+    *   **Crear (POST):**
+        *   Registrar una nueva venta (incluyendo si es "fiado" y a qué cliente).
+        *   Registrar un pago a una cuenta corriente.
+        *   Registrar un nuevo gasto.
+    *   **Actualizar (PUT/PATCH):**
+        *   Ajustar el stock de un producto (ej. al recibir un pedido de un proveedor).
+
+---
+
+### **Módulos y Funcionalidades Detalladas**
+
+**1. Módulo de Carga y Ventas:**
+*   **Pantalla de "Carga Diaria":** La pantalla principal. Debe tener un selector de fecha grande y visible para que todas las operaciones manuales se asignen al día correcto.
+*   **Visualización Unificada:** Debe mostrar una lista clara de las ventas del día seleccionado, distinguiendo visualmente las que fueron cargadas manualmente de las que ingresaron en tiempo real a través de la API.
+*   **Formulario de Carga Rápida:** Un formulario optimizado para ingresar productos rápidamente (con autocompletado), especificar cantidad, método de pago o asignar a la cuenta corriente de un cliente.
+
+**2. Módulo de Inventario y Productos:**
+*   **Gestión de Productos:** CRUD completo (Crear, Leer, Actualizar, Borrar) para productos. Campos: Nombre, Código (para lector de barras), Categoría, Proveedor, Costo de Compra, Precio de Venta, Nivel Mínimo de Stock.
+*   **Control de Stock Automatizado:** El stock debe disminuir automáticamente con cada venta, sin importar si fue registrada manual o vía API.
+*   **Asistente de Stock Inteligente (IA):**
+    *   **Alertas Proactivas:** No solo alertar cuando el stock es bajo. El sistema debe analizar la velocidad de venta de cada producto para sugerir cuándo reponer, incluso antes de llegar al mínimo.
+    *   **Predicción de Demanda:** Basado en el historial, sugerir aumentos de stock antes de fines de semana, feriados o eventos especiales.
+
+**3. Módulo de Clientes y Cuentas Corrientes ("Fiados"):**
+*   **Ficha de Cliente:** Un perfil para cada cliente con su información de contacto y un historial completo y fácil de leer de todas sus compras y pagos.
+*   **"Libreta Virtual":** Una vista clara del saldo actual de la deuda de cada cliente, con un balance que se actualiza en tiempo real.
+*   **Registro de Pagos Simple:** Un botón prominente en la ficha del cliente para registrar "entregas" o pagos parciales/totales de su deuda.
+*   **Reporte de Deudores:** Una pantalla que muestre una lista de todos los clientes con saldo deudor, ordenados por monto o antigüedad de la deuda.
+*   **Opción para exportar la cuenta de un cliente para enviársela por WhatsApp.
+
+**4. Módulo de Proveedores y Pedidos:**
+*   **Directorio de Proveedores:** Una agenda simple con los datos de contacto de los proveedores.
+*   **Asistente de Pedidos (IA):** Una herramienta que genere automáticamente una "Lista de Compras" sugerida. Esta lista se basará en las alertas del Asistente de Stock Inteligente, agrupando los productos por proveedor para facilitar el pedido.
+
+**5. Módulo de Finanzas y Reportes Inteligentes:**
+*   **Flujo de Caja:** Una interfaz simple para registrar todos los ingresos (ventas, aportes) y egresos (pago a proveedores, servicios, sueldos) del negocio.
+*   **Cierre de Caja Diario:** Una función que, para un día específico, resume:
+    *   Ventas totales (desglosadas por efectivo, transferencia, fiado).
+    *   Total de "fiado" otorgado.
+    *   Total de deudas cobradas.
+    *   Gastos del día.
+    *   Balance final.
+*   **Dashboard con Resumen Inteligente (IA):** La pantalla de inicio o una sección de reportes que, en lugar de solo mostrar gráficos, presente análisis en lenguaje natural:
+    *   *"Resumen de la semana: Tus productos estrella fueron [Producto A] y [Producto B]. La ganancia estimada fue de X pesos, un 15% más que la semana pasada."*
+    *   *"Dato curioso: Noté que la venta de [Producto C] aumenta significativamente los viernes por la tarde."*
+
+**Interfaz de Usuario y Experiencia (UI/UX):**
+*   **Simplicidad ante todo:** La interfaz debe ser limpia, con botones grandes, texto legible e íconos claros.
+*   **A prueba de errores:** Implementar ventanas de confirmación para acciones críticas como eliminar un producto o un cliente.
+*   **Idioma:** Completamente en español de Argentina.
+*   **Rendimiento:** La aplicación debe ser rápida y fluida, para una computadora de gama baja.
