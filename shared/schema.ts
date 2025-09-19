@@ -144,6 +144,37 @@ export const expenses = pgTable("expenses", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Cash closing table for daily reconciliation
+export const cashClosings = pgTable("cash_closings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  closingDate: date("closing_date").notNull(),
+  closedBy: varchar("closed_by").references(() => users.id).notNull(),
+  
+  // Expected amounts (system calculated)
+  expectedCash: decimal("expected_cash", { precision: 10, scale: 2 }).notNull(),
+  expectedTransfers: decimal("expected_transfers", { precision: 10, scale: 2 }).notNull(),
+  
+  // Actual amounts (physically counted)
+  actualCash: decimal("actual_cash", { precision: 10, scale: 2 }).notNull(),
+  actualTransfers: decimal("actual_transfers", { precision: 10, scale: 2 }).notNull(),
+  
+  // Variances (calculated: actual - expected)
+  cashVariance: decimal("cash_variance", { precision: 10, scale: 2 }).notNull(),
+  transferVariance: decimal("transfer_variance", { precision: 10, scale: 2 }).notNull(),
+  
+  // Summary totals
+  totalSales: decimal("total_sales", { precision: 10, scale: 2 }).notNull(),
+  totalExpenses: decimal("total_expenses", { precision: 10, scale: 2 }).notNull(),
+  debtCollected: decimal("debt_collected", { precision: 10, scale: 2 }).notNull(),
+  creditGiven: decimal("credit_given", { precision: 10, scale: 2 }).notNull(),
+  
+  // Reconciliation notes
+  notes: text("notes"),
+  reconciliationStatus: varchar("reconciliation_status").default("completed"), // completed, discrepancy
+  
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Stock movements table
 export const stockMovements = pgTable("stock_movements", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -217,6 +248,13 @@ export const paymentsRelations = relations(payments, ({ one }) => ({
   customer: one(customers, {
     fields: [payments.customerId],
     references: [customers.id],
+  }),
+}));
+
+export const cashClosingsRelations = relations(cashClosings, ({ one }) => ({
+  closedByUser: one(users, {
+    fields: [cashClosings.closedBy],
+    references: [users.id],
   }),
 }));
 
@@ -294,6 +332,11 @@ export const insertStockMovementSchema = createInsertSchema(stockMovements).omit
   createdAt: true,
 });
 
+export const insertCashClosingSchema = createInsertSchema(cashClosings).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertApiKeySchema = createInsertSchema(apiKeys).omit({
   id: true,
   createdAt: true,
@@ -329,6 +372,9 @@ export type Expense = typeof expenses.$inferSelect;
 
 export type InsertStockMovement = z.infer<typeof insertStockMovementSchema>;
 export type StockMovement = typeof stockMovements.$inferSelect;
+
+export type InsertCashClosing = z.infer<typeof insertCashClosingSchema>;
+export type CashClosing = typeof cashClosings.$inferSelect;
 
 export type InsertApiKey = z.infer<typeof insertApiKeySchema>;
 export type ApiKey = typeof apiKeys.$inferSelect;

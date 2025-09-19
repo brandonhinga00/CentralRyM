@@ -12,7 +12,8 @@ import {
   insertExpenseSchema,
   insertSupplierSchema,
   insertCategorySchema,
-  insertApiKeySchema
+  insertApiKeySchema,
+  insertCashClosingSchema
 } from "@shared/schema";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
@@ -361,6 +362,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating expense:", error);
       res.status(400).json({ message: "Error al crear gasto" });
+    }
+  });
+
+  // Cash closing routes
+  app.get('/api/cash-closings', isAuthenticated, async (req, res) => {
+    try {
+      const { startDate, endDate } = req.query;
+      const cashClosings = await storage.getCashClosings(
+        startDate as string,
+        endDate as string
+      );
+      res.json(cashClosings);
+    } catch (error) {
+      console.error("Error fetching cash closings:", error);
+      res.status(500).json({ message: "Error al obtener cierres de caja" });
+    }
+  });
+
+  app.get('/api/cash-closings/:id', isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const cashClosing = await storage.getCashClosing(id);
+      if (!cashClosing) {
+        return res.status(404).json({ message: "Cierre de caja no encontrado" });
+      }
+      res.json(cashClosing);
+    } catch (error) {
+      console.error("Error fetching cash closing:", error);
+      res.status(500).json({ message: "Error al obtener cierre de caja" });
+    }
+  });
+
+  app.get('/api/cash-closings/by-date/:date', isAuthenticated, async (req, res) => {
+    try {
+      const { date } = req.params;
+      const cashClosing = await storage.getCashClosingByDate(date);
+      res.json(cashClosing);
+    } catch (error) {
+      console.error("Error fetching cash closing by date:", error);
+      res.status(500).json({ message: "Error al obtener cierre de caja por fecha" });
+    }
+  });
+
+  app.post('/api/cash-closings', isAuthenticated, async (req, res) => {
+    try {
+      // Security: Never trust client for closedBy - use authenticated user
+      const userId = (req as any).user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: "Usuario no autenticado" });
+      }
+
+      // Check if closing already exists for this date
+      const existingClosing = await storage.getCashClosingByDate(req.body.closingDate);
+      if (existingClosing) {
+        return res.status(409).json({ message: "Ya existe un cierre para esta fecha" });
+      }
+
+      // Remove closedBy from client data and set from server
+      const { closedBy, ...clientData } = req.body;
+      const cashClosingData = insertCashClosingSchema.parse({
+        ...clientData,
+        closedBy: userId
+      });
+      
+      const cashClosing = await storage.createCashClosing(cashClosingData);
+      res.status(201).json(cashClosing);
+    } catch (error) {
+      console.error("Error creating cash closing:", error);
+      res.status(400).json({ message: "Error al crear cierre de caja" });
     }
   });
 

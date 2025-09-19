@@ -10,6 +10,7 @@ import {
   expenses,
   stockMovements,
   apiKeys,
+  cashClosings,
   type User,
   type UpsertUser,
   type InsertSupplier,
@@ -32,6 +33,8 @@ import {
   type StockMovement,
   type InsertApiKey,
   type ApiKey,
+  type CashClosing,
+  type InsertCashClosing,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, asc, sql, and, gte, lte, like, ne } from "drizzle-orm";
@@ -110,6 +113,12 @@ export interface IStorage {
   updateApiKey(id: string, apiKey: Partial<InsertApiKey>): Promise<ApiKey>;
   deleteApiKey(id: string): Promise<void>;
 
+  // Cash closing operations  
+  getCashClosings(startDate?: string, endDate?: string): Promise<CashClosing[]>;
+  getCashClosing(id: string): Promise<CashClosing | undefined>;
+  getCashClosingByDate(date: string): Promise<CashClosing | undefined>;
+  createCashClosing(cashClosing: InsertCashClosing): Promise<CashClosing>;
+  
   // Dashboard operations
   getDailySummary(date: string): Promise<{
     totalSales: number;
@@ -642,6 +651,39 @@ export class DatabaseStorage implements IStorage {
       salesCount: Number(totalSalesResult[0]?.count || 0),
       apiSalesCount: Number(apiSalesResult[0]?.count || 0),
     };
+  }
+
+  // Cash closing operations
+  async getCashClosings(startDate?: string, endDate?: string): Promise<CashClosing[]> {
+    let query = db.select().from(cashClosings);
+    
+    if (startDate && endDate) {
+      query = query.where(and(
+        gte(cashClosings.closingDate, startDate),
+        lte(cashClosings.closingDate, endDate)
+      ));
+    } else if (startDate) {
+      query = query.where(gte(cashClosings.closingDate, startDate));
+    } else if (endDate) {
+      query = query.where(lte(cashClosings.closingDate, endDate));
+    }
+    
+    return await query.orderBy(desc(cashClosings.closingDate));
+  }
+
+  async getCashClosing(id: string): Promise<CashClosing | undefined> {
+    const [cashClosing] = await db.select().from(cashClosings).where(eq(cashClosings.id, id));
+    return cashClosing;
+  }
+
+  async getCashClosingByDate(date: string): Promise<CashClosing | undefined> {
+    const [cashClosing] = await db.select().from(cashClosings).where(eq(cashClosings.closingDate, date));
+    return cashClosing;
+  }
+
+  async createCashClosing(cashClosingData: InsertCashClosing): Promise<CashClosing> {
+    const [newCashClosing] = await db.insert(cashClosings).values(cashClosingData).returning();
+    return newCashClosing;
   }
 }
 

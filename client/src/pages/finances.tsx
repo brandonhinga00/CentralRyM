@@ -223,13 +223,87 @@ export default function Finances() {
   
   const formattedDate = format(getValidDate(selectedDate), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es });
 
-  const handleCloseCash = () => {
-    setCashClosed(true);
-    setIsCashClosingOpen(false);
-    toast({
-      title: "Caja cerrada",
-      description: `Caja cerrada exitosamente para el ${formattedDate}`,
-    });
+  // Enhanced cash closing with reconciliation
+  const [actualCash, setActualCash] = useState("");
+  const [actualTransfers, setActualTransfers] = useState("");
+  const [closingNotes, setClosingNotes] = useState("");
+
+  const handleCloseCash = async () => {
+    if (!actualCash || !actualTransfers) {
+      toast({
+        title: "Datos incompletos",
+        description: "Por favor ingrese los montos reales de efectivo y transferencias",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Calculate expected amounts from daily data
+      const cashSales = (dailySales as any[]).filter(sale => sale.paymentMethod === 'efectivo').reduce((sum, sale) => sum + Number(sale.totalAmount), 0);
+      const transferSales = (dailySales as any[]).filter(sale => sale.paymentMethod === 'transferencia').reduce((sum, sale) => sum + Number(sale.totalAmount), 0);
+      const cashExpenses = (dailyExpenses as any[]).filter(expense => expense.paymentMethod === 'efectivo').reduce((sum, expense) => sum + Number(expense.amount), 0);
+      const transferExpenses = (dailyExpenses as any[]).filter(expense => expense.paymentMethod === 'transferencia').reduce((sum, expense) => sum + Number(expense.amount), 0);
+      
+      // Include debt payments (customer payments received) in expected amounts
+      const cashDebtPayments = (dailyPayments as any[]).filter(payment => payment.paymentMethod === 'efectivo').reduce((sum, payment) => sum + Number(payment.amount), 0);
+      const transferDebtPayments = (dailyPayments as any[]).filter(payment => payment.paymentMethod === 'transferencia').reduce((sum, payment) => sum + Number(payment.amount), 0);
+      
+      const debtCollectedAmount = (dailyPayments as any[]).reduce((sum, payment) => sum + Number(payment.amount), 0);
+      const creditGivenAmount = (dailySales as any[]).filter(sale => sale.paymentMethod === 'fiado').reduce((sum, sale) => sum + Number(sale.totalAmount), 0);
+      
+      // Correct expected amounts: sales + debt payments - expenses
+      const expectedCash = cashSales + cashDebtPayments - cashExpenses;
+      const expectedTransfers = transferSales + transferDebtPayments - transferExpenses;
+      const actualCashNum = parseFloat(actualCash);
+      const actualTransfersNum = parseFloat(actualTransfers);
+      
+      // Validate numeric inputs to prevent NaN
+      if (isNaN(actualCashNum) || isNaN(actualTransfersNum)) {
+        toast({
+          title: "Valores inválidos",
+          description: "Por favor ingrese números válidos para efectivo y transferencias",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const cashClosingData = {
+        closingDate: selectedDate,
+        // closedBy is set server-side for security - never trust client
+        expectedCash: expectedCash.toString(),
+        expectedTransfers: expectedTransfers.toString(),
+        actualCash: actualCash,
+        actualTransfers: actualTransfers,
+        cashVariance: (actualCashNum - expectedCash).toString(),
+        transferVariance: (actualTransfersNum - expectedTransfers).toString(),
+        totalSales: (cashSales + transferSales).toString(),
+        totalExpenses: (cashExpenses + transferExpenses).toString(),
+        debtCollected: debtCollectedAmount.toString(),
+        creditGiven: creditGivenAmount.toString(),
+        notes: closingNotes,
+        reconciliationStatus: Math.abs(actualCashNum - expectedCash) > 1 || Math.abs(actualTransfersNum - expectedTransfers) > 1 ? "discrepancy" : "completed"
+      };
+
+      const response = await apiRequest("POST", "/api/cash-closings", cashClosingData);
+      
+      setCashClosed(true);
+      setIsCashClosingOpen(false);
+      setActualCash("");
+      setActualTransfers("");
+      setClosingNotes("");
+      
+      toast({
+        title: "Caja cerrada con éxito",
+        description: `Reconciliación completa para el ${formattedDate}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error al cerrar caja",
+        description: "No se pudo completar el cierre de caja",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -262,37 +336,181 @@ export default function Finances() {
                     {cashClosed && <CheckCircle className="h-4 w-4 text-green-600" />}
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="sm:max-w-[600px]" data-testid="dialog-cash-reconciliation">
                   <DialogHeader>
-                    <DialogTitle>Confirmar Cierre de Caja</DialogTitle>
+                    <DialogTitle className="flex items-center space-x-2">
+                      <Calculator className="h-5 w-5" />
+                      <span>Reconciliación y Cierre de Caja</span>
+                    </DialogTitle>
                     <DialogDescription>
-                      ¿Estás seguro que deseas cerrar la caja para el {formattedDate}?
-                      Esta acción marcará el día como finalizado.
+                      Reconciliación detallada para el {formattedDate}. Ingrese los montos físicos contados.
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="bg-blue-50 p-4 rounded-lg mb-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="font-medium">Ingresos totales:</span>
-                      <span className="text-green-600 font-bold">${netIncome.toFixed(2)}</span>
+                  
+                  <div className="space-y-6">
+                    {/* Expected vs Actual Summary */}
+                    <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
+                      <h4 className="font-semibold mb-3">Montos Esperados (Sistema)</h4>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">💵 Efectivo esperado:</span>
+                          <p className="font-medium">${(() => {
+                            const cashSales = (dailySales as any[]).filter(sale => sale.paymentMethod === 'efectivo').reduce((sum, sale) => sum + Number(sale.totalAmount), 0);
+                            const cashExpenses = (dailyExpenses as any[]).filter(expense => expense.paymentMethod === 'efectivo').reduce((sum, expense) => sum + Number(expense.amount), 0);
+                            const cashDebtPayments = (dailyPayments as any[]).filter(payment => payment.paymentMethod === 'efectivo').reduce((sum, payment) => sum + Number(payment.amount), 0);
+                            return (cashSales + cashDebtPayments - cashExpenses).toFixed(2);
+                          })()}</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">💳 Transferencias esperadas:</span>
+                          <p className="font-medium">${(() => {
+                            const transferSales = (dailySales as any[]).filter(sale => sale.paymentMethod === 'transferencia').reduce((sum, sale) => sum + Number(sale.totalAmount), 0);
+                            const transferExpenses = (dailyExpenses as any[]).filter(expense => expense.paymentMethod === 'transferencia').reduce((sum, expense) => sum + Number(expense.amount), 0);
+                            const transferDebtPayments = (dailyPayments as any[]).filter(payment => payment.paymentMethod === 'transferencia').reduce((sum, payment) => sum + Number(payment.amount), 0);
+                            return (transferSales + transferDebtPayments - transferExpenses).toFixed(2);
+                          })()}</p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="font-medium">Gastos totales:</span>
-                      <span className="text-red-600 font-bold">${totalExpenses.toFixed(2)}</span>
+
+                    {/* Physical Count Inputs */}
+                    <div className="bg-yellow-50 dark:bg-yellow-950 p-4 rounded-lg">
+                      <h4 className="font-semibold mb-3">Conteo Físico</h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="actual-cash">💵 Efectivo Contado</Label>
+                          <Input
+                            id="actual-cash"
+                            type="number"
+                            step="0.01"
+                            placeholder="0.00"
+                            value={actualCash}
+                            onChange={(e) => setActualCash(e.target.value)}
+                            data-testid="input-actual-cash"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="actual-transfers">💳 Transferencias Confirmadas</Label>
+                          <Input
+                            id="actual-transfers"
+                            type="number"
+                            step="0.01"
+                            placeholder="0.00"
+                            value={actualTransfers}
+                            onChange={(e) => setActualTransfers(e.target.value)}
+                            data-testid="input-actual-transfers"
+                          />
+                        </div>
+                      </div>
                     </div>
-                    <hr className="my-2" />
-                    <div className="flex justify-between items-center">
-                      <span className="text-lg font-bold">Balance final:</span>
-                      <span className={`text-xl font-bold ${netBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        ${netBalance.toFixed(2)}
-                      </span>
+
+                    {/* Variance Calculation */}
+                    {(actualCash && actualTransfers) && (
+                      <div className="bg-gray-50 dark:bg-gray-950 p-4 rounded-lg">
+                        <h4 className="font-semibold mb-3">Diferencias</h4>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">Diferencia Efectivo:</span>
+                            <p className={`font-medium ${(() => {
+                              const cashSales = (dailySales as any[]).filter(sale => sale.paymentMethod === 'efectivo').reduce((sum, sale) => sum + Number(sale.totalAmount), 0);
+                              const cashExpenses = (dailyExpenses as any[]).filter(expense => expense.paymentMethod === 'efectivo').reduce((sum, expense) => sum + Number(expense.amount), 0);
+                              const variance = parseFloat(actualCash) - (cashSales - cashExpenses);
+                              return variance >= 0 ? 'text-green-600' : 'text-red-600';
+                            })()}`}>
+                              ${(() => {
+                                const cashSales = (dailySales as any[]).filter(sale => sale.paymentMethod === 'efectivo').reduce((sum, sale) => sum + Number(sale.totalAmount), 0);
+                                const cashExpenses = (dailyExpenses as any[]).filter(expense => expense.paymentMethod === 'efectivo').reduce((sum, expense) => sum + Number(expense.amount), 0);
+                                return (parseFloat(actualCash) - (cashSales - cashExpenses)).toFixed(2);
+                              })()}
+                            </p>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Diferencia Transferencias:</span>
+                            <p className={`font-medium ${(() => {
+                              const transferSales = (dailySales as any[]).filter(sale => sale.paymentMethod === 'transferencia').reduce((sum, sale) => sum + Number(sale.totalAmount), 0);
+                              const transferExpenses = (dailyExpenses as any[]).filter(expense => expense.paymentMethod === 'transferencia').reduce((sum, expense) => sum + Number(expense.amount), 0);
+                              const variance = parseFloat(actualTransfers) - (transferSales - transferExpenses);
+                              return variance >= 0 ? 'text-green-600' : 'text-red-600';
+                            })()}`}>
+                              ${(() => {
+                                const transferSales = (dailySales as any[]).filter(sale => sale.paymentMethod === 'transferencia').reduce((sum, sale) => sum + Number(sale.totalAmount), 0);
+                                const transferExpenses = (dailyExpenses as any[]).filter(expense => expense.paymentMethod === 'transferencia').reduce((sum, expense) => sum + Number(expense.amount), 0);
+                                return (parseFloat(actualTransfers) - (transferSales - transferExpenses)).toFixed(2);
+                              })()}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Notes */}
+                    <div>
+                      <Label htmlFor="closing-notes">Notas de Reconciliación (Opcional)</Label>
+                      <textarea
+                        id="closing-notes"
+                        placeholder="Observaciones sobre diferencias o incidencias..."
+                        value={closingNotes}
+                        onChange={(e) => setClosingNotes(e.target.value)}
+                        className="w-full mt-1 px-3 py-2 border border-input rounded-md text-sm"
+                        rows={3}
+                        data-testid="textarea-closing-notes"
+                      />
+                    </div>
+
+                    {/* Final Summary */}
+                    <div className="bg-green-50 dark:bg-green-950 p-4 rounded-lg">
+                      <h4 className="font-semibold mb-2">Resumen Final del Día</h4>
+                      <div className="text-sm space-y-1">
+                        <div className="flex justify-between">
+                          <span>Total Ventas:</span>
+                          <span className="font-medium">${netIncome.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Total Gastos:</span>
+                          <span className="font-medium">${totalExpenses.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Crédito Otorgado:</span>
+                          <span className="font-medium">${(() => {
+                            return (dailySales as any[]).filter(sale => sale.paymentMethod === 'fiado').reduce((sum, sale) => sum + Number(sale.totalAmount), 0).toFixed(2);
+                          })()}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Pagos Recibidos:</span>
+                          <span className="font-medium">${(() => {
+                            return (dailyPayments as any[]).reduce((sum, payment) => sum + Number(payment.amount), 0).toFixed(2);
+                          })()}</span>
+                        </div>
+                        <hr className="my-2" />
+                        <div className="flex justify-between text-lg font-bold">
+                          <span>Balance Neto:</span>
+                          <span className={netBalance >= 0 ? 'text-green-600' : 'text-red-600'}>
+                            ${netBalance.toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex justify-end space-x-3">
-                    <Button variant="outline" onClick={() => setIsCashClosingOpen(false)}>
+                  
+                  <div className="flex justify-end space-x-3 pt-4">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setIsCashClosingOpen(false);
+                        setActualCash("");
+                        setActualTransfers("");
+                        setClosingNotes("");
+                      }}
+                      data-testid="button-cancel-reconciliation"
+                    >
                       Cancelar
                     </Button>
-                    <Button onClick={handleCloseCash}>
-                      Confirmar Cierre
+                    <Button 
+                      onClick={handleCloseCash}
+                      disabled={!actualCash || !actualTransfers}
+                      data-testid="button-confirm-reconciliation"
+                    >
+                      Finalizar Reconciliación
                     </Button>
                   </div>
                 </DialogContent>
