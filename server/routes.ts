@@ -386,6 +386,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put('/api/suppliers/:id', isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const supplierData = insertSupplierSchema.partial().parse(req.body);
+      const supplier = await storage.updateSupplier(id, supplierData);
+      res.json(supplier);
+    } catch (error) {
+      console.error("Error updating supplier:", error);
+      res.status(400).json({ message: "Error al actualizar proveedor" });
+    }
+  });
+
+  app.delete('/api/suppliers/:id', isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteSupplier(id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting supplier:", error);
+      res.status(400).json({ message: "Error al eliminar proveedor" });
+    }
+  });
+
+  app.get('/api/purchase-suggestions', isAuthenticated, async (req, res) => {
+    try {
+      const products = await storage.getProducts();
+      const suggestions = products
+        .filter(product => {
+          const currentStock = product.currentStock ?? 0;
+          const minStock = product.minStock ?? 0;
+          return currentStock <= minStock;
+        })
+        .map(product => {
+          const currentStock = product.currentStock ?? 0;
+          const minStock = product.minStock ?? 0;
+          const maxStock = product.maxStock ?? 0;
+          return {
+            ...product,
+            suggestedQuantity: maxStock > 0 ? maxStock - currentStock : minStock * 2,
+            priority: currentStock === 0 ? 'urgent' : 'normal' as const
+          };
+        });
+      res.json(suggestions);
+    } catch (error) {
+      console.error("Error generating purchase suggestions:", error);
+      res.status(500).json({ message: "Error al generar sugerencias de compra" });
+    }
+  });
+
   // Category routes
   app.get('/api/categories', isAuthenticated, async (req, res) => {
     try {

@@ -332,3 +332,9 @@ export type StockMovement = typeof stockMovements.$inferSelect;
 
 export type InsertApiKey = z.infer<typeof insertApiKeySchema>;
 export type ApiKey = typeof apiKeys.$inferSelect;
+
+// Purchase suggestion type
+export type PurchaseSuggestion = Product & {
+  suggestedQuantity: number;
+  priority: 'urgent' | 'normal';
+};
