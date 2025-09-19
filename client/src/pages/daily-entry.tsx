@@ -65,6 +65,7 @@ export default function DailyEntry() {
   // Form setup
   const form = useForm<QuickSaleData>({
     resolver: zodResolver(quickSaleSchema),
+    mode: "onChange",
     defaultValues: {
       productId: "",
       productName: "",
@@ -75,6 +76,19 @@ export default function DailyEntry() {
       customerName: "",
     },
   });
+
+  // Ensure form resets with correct defaults
+  useEffect(() => {
+    form.reset({
+      productId: "",
+      productName: "",
+      quantity: "1",
+      unitPrice: "",
+      paymentMethod: "efectivo",
+      customerId: "",
+      customerName: "",
+    });
+  }, [form]);
 
   const expenseForm = useForm<ExpenseData>({
     resolver: zodResolver(expenseSchema),
