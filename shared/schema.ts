@@ -246,11 +246,20 @@ export const insertCategorySchema = createInsertSchema(categories).omit({
   createdAt: true,
 });
 
-export const insertProductSchema = createInsertSchema(products).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const insertProductSchema = createInsertSchema(products)
+  .omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+  })
+  .extend({
+    // Allow strings for all numeric fields and convert them
+    costPrice: z.string().optional().transform(val => val ? val : undefined),
+    salePrice: z.string().min(1, "El precio de venta es requerido"),
+    currentStock: z.string().min(1, "El stock actual es requerido").transform(val => parseInt(val)),
+    minStock: z.string().min(1, "El stock mínimo es requerido").transform(val => parseInt(val)),
+    maxStock: z.string().optional().transform(val => val ? parseInt(val) : undefined),
+  });
 
 export const insertCustomerSchema = createInsertSchema(customers).omit({
   id: true,
