@@ -14,7 +14,9 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Users, Plus, Search, CreditCard, DollarSign, Phone, Edit, Trash2, MessageCircle } from "lucide-react";
+import { Users, Plus, Search, CreditCard, DollarSign, Phone, Edit, Trash2, MessageCircle, ShoppingCart } from "lucide-react";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import { isUnauthorizedError } from "@/lib/authUtils";
 
 const customerSchema = z.object({
@@ -34,6 +36,87 @@ const paymentSchema = z.object({
 
 type CustomerFormData = z.infer<typeof customerSchema>;
 type PaymentFormData = z.infer<typeof paymentSchema>;
+
+// Account Transaction History Component
+function AccountTransactionHistory({ sales, payments }: { sales: any[], payments: any[] }) {
+  // Combine and sort transactions by date
+  const transactions = [
+    ...sales.map((sale: any) => ({
+      id: sale.id,
+      type: 'sale' as const,
+      date: sale.saleDate,
+      description: `Venta ${sale.paymentMethod}`,
+      amount: Number(sale.totalAmount),
+      balance: 0, // Will be calculated below
+    })),
+    ...payments.map((payment: any) => ({
+      id: payment.id,
+      type: 'payment' as const,
+      date: payment.paymentDate,
+      description: `Pago ${payment.paymentMethod}`,
+      amount: -Number(payment.amount), // Negative because it reduces debt
+      balance: 0, // Will be calculated below
+    }))
+  ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  // Calculate running balance
+  let runningBalance = 0;
+  transactions.forEach(transaction => {
+    runningBalance += transaction.amount;
+    transaction.balance = runningBalance;
+  });
+
+  if (transactions.length === 0) {
+    return (
+      <div className="text-center py-4 text-muted-foreground">
+        <CreditCard className="h-8 w-8 mx-auto mb-2 opacity-50" />
+        <p>No hay movimientos registrados</p>
+        <p className="text-sm">Las transacciones aparecerán aquí</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2 max-h-60 overflow-y-auto">
+      {transactions.map((transaction, index) => (
+        <div 
+          key={transaction.id} 
+          className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50"
+          data-testid={`transaction-${transaction.id}`}
+        >
+          <div className="flex items-center space-x-3">
+            <div className={`p-2 rounded-full ${
+              transaction.type === 'sale' 
+                ? 'bg-orange-100 text-orange-600' 
+                : 'bg-green-100 text-green-600'
+            }`}>
+              {transaction.type === 'sale' ? 
+                <ShoppingCart className="h-4 w-4" /> : 
+                <DollarSign className="h-4 w-4" />
+              }
+            </div>
+            <div>
+              <p className="font-medium text-sm">{transaction.description}</p>
+              <p className="text-xs text-muted-foreground">
+                {format(new Date(transaction.date), "d 'de' MMMM, yyyy", { locale: es })}
+              </p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className={`font-medium ${
+              transaction.type === 'sale' ? 'text-orange-600' : 'text-green-600'
+            }`}>
+              {transaction.type === 'sale' ? '+' : ''}${Math.abs(transaction.amount).toFixed(2)}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Saldo: ${transaction.balance.toFixed(2)}
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function Customers() {
   const { toast } = useToast();
@@ -63,6 +146,29 @@ export default function Customers() {
   const { data: topDebtors } = useQuery({
     queryKey: ['/api/dashboard/top-debtors'],
     enabled: isAuthenticated,
+    retry: false,
+  });
+
+  // Load customer transaction history for account statement
+  const { data: customerSales = [], isLoading: salesLoading } = useQuery({
+    queryKey: ['/api/sales', 'customer', accountCustomer?.id],
+    queryFn: async () => {
+      if (!accountCustomer) return [];
+      const response = await apiRequest("GET", `/api/sales?customerId=${accountCustomer.id}&paymentMethod=fiado`);
+      return response.json();
+    },
+    enabled: !!accountCustomer?.id && isAccountDialogOpen,
+    retry: false,
+  });
+
+  const { data: customerPayments = [], isLoading: paymentsLoading } = useQuery({
+    queryKey: ['/api/payments', accountCustomer?.id],
+    queryFn: async () => {
+      if (!accountCustomer) return [];
+      const response = await apiRequest("GET", `/api/payments?customerId=${accountCustomer.id}`);
+      return response.json();
+    },
+    enabled: !!accountCustomer?.id && isAccountDialogOpen,
     retry: false,
   });
 
@@ -827,11 +933,17 @@ export default function Customers() {
             </div>
             <div className="border rounded-lg p-4">
               <h4 className="font-medium mb-3">Historial de Movimientos</h4>
-              <div className="text-center py-4 text-muted-foreground">
-                <CreditCard className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p>Funcionalidad de estado de cuenta completo</p>
-                <p className="text-sm">próximamente disponible</p>
-              </div>
+              {salesLoading || paymentsLoading ? (
+                <div className="text-center py-4">
+                  <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                  <p className="text-sm text-muted-foreground">Cargando historial...</p>
+                </div>
+              ) : (
+                <AccountTransactionHistory 
+                  sales={customerSales} 
+                  payments={customerPayments} 
+                />
+              )}
             </div>
             <div className="flex justify-end">
               <Button 
