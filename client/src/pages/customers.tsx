@@ -123,6 +123,7 @@ export default function Customers() {
   const { isAuthenticated, isLoading } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showDebtorsOnly, setShowDebtorsOnly] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<any>(null);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [paymentCustomer, setPaymentCustomer] = useState<any>(null);
@@ -172,11 +173,18 @@ export default function Customers() {
     retry: false,
   });
 
-  const filteredCustomers = Array.isArray(customers) ? customers.filter((customer: any) =>
-    customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (customer.phone && customer.phone.includes(searchTerm)) ||
-    (customer.idDocument && customer.idDocument.includes(searchTerm))
-  ) : [];
+  const filteredCustomers = Array.isArray(customers) ? customers.filter((customer: any) => {
+    // Basic search filter
+    const matchesSearch = customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (customer.phone && customer.phone.includes(searchTerm)) ||
+      (customer.idDocument && customer.idDocument.includes(searchTerm));
+    
+    // Debtors only filter
+    const matchesDebtorFilter = !showDebtorsOnly || 
+      (Array.isArray(customersWithDebt) && customersWithDebt.some((debtor: any) => debtor.id === customer.id));
+    
+    return matchesSearch && matchesDebtorFilter;
+  }) : [];
 
   const totalCustomers = Array.isArray(customers) ? customers.length : 0;
   const customersWithDebtCount = Array.isArray(customersWithDebt) ? customersWithDebt.length : 0;
@@ -660,8 +668,16 @@ export default function Customers() {
                     data-testid="input-search-customers"
                   />
                 </div>
-                <Button variant="outline" data-testid="button-filter-debtors">
-                  Solo Deudores
+                <Button 
+                  variant={showDebtorsOnly ? "default" : "outline"} 
+                  onClick={() => setShowDebtorsOnly(!showDebtorsOnly)}
+                  data-testid="button-filter-debtors"
+                >
+                  Solo Deudores {showDebtorsOnly && (
+                    <span className="ml-1 px-1.5 py-0.5 text-xs bg-white bg-opacity-20 rounded-full">
+                      ✓
+                    </span>
+                  )}
                 </Button>
               </div>
             </CardContent>
