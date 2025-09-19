@@ -250,17 +250,17 @@ export default function Finances() {
 
     try {
       // Calculate expected amounts from daily data
-      const cashSales = (dailySales as any[]).filter(sale => sale.paymentMethod === 'efectivo').reduce((sum, sale) => sum + Number(sale.totalAmount), 0);
-      const transferSales = (dailySales as any[]).filter(sale => sale.paymentMethod === 'transferencia').reduce((sum, sale) => sum + Number(sale.totalAmount), 0);
-      const cashExpenses = (dailyExpenses as any[]).filter(expense => expense.paymentMethod === 'efectivo').reduce((sum, expense) => sum + Number(expense.amount), 0);
-      const transferExpenses = (dailyExpenses as any[]).filter(expense => expense.paymentMethod === 'transferencia').reduce((sum, expense) => sum + Number(expense.amount), 0);
+      const cashSales = Array.isArray(dailySales) ? dailySales.filter(sale => sale.paymentMethod === 'efectivo').reduce((sum, sale) => sum + Number(sale.totalAmount), 0) : 0;
+      const transferSales = Array.isArray(dailySales) ? dailySales.filter(sale => sale.paymentMethod === 'transferencia').reduce((sum, sale) => sum + Number(sale.totalAmount), 0) : 0;
+      const cashExpenses = Array.isArray(dailyExpenses) ? dailyExpenses.filter(expense => expense.paymentMethod === 'efectivo').reduce((sum, expense) => sum + Number(expense.amount), 0) : 0;
+      const transferExpenses = Array.isArray(dailyExpenses) ? dailyExpenses.filter(expense => expense.paymentMethod === 'transferencia').reduce((sum, expense) => sum + Number(expense.amount), 0) : 0;
       
       // Include debt payments (customer payments received) in expected amounts
-      const cashDebtPayments = (dailyPayments as any[]).filter(payment => payment.paymentMethod === 'efectivo').reduce((sum, payment) => sum + Number(payment.amount), 0);
-      const transferDebtPayments = (dailyPayments as any[]).filter(payment => payment.paymentMethod === 'transferencia').reduce((sum, payment) => sum + Number(payment.amount), 0);
+      const cashDebtPayments = Array.isArray(dailyPayments) ? dailyPayments.filter(payment => payment.paymentMethod === 'efectivo').reduce((sum, payment) => sum + Number(payment.amount), 0) : 0;
+      const transferDebtPayments = Array.isArray(dailyPayments) ? dailyPayments.filter(payment => payment.paymentMethod === 'transferencia').reduce((sum, payment) => sum + Number(payment.amount), 0) : 0;
       
-      const debtCollectedAmount = (dailyPayments as any[]).reduce((sum, payment) => sum + Number(payment.amount), 0);
-      const creditGivenAmount = (dailySales as any[]).filter(sale => sale.paymentMethod === 'fiado').reduce((sum, sale) => sum + Number(sale.totalAmount), 0);
+      const debtCollectedAmount = Array.isArray(dailyPayments) ? dailyPayments.reduce((sum, payment) => sum + Number(payment.amount), 0) : 0;
+      const creditGivenAmount = Array.isArray(dailySales) ? dailySales.filter(sale => sale.paymentMethod === 'fiado').reduce((sum, sale) => sum + Number(sale.totalAmount), 0) : 0;
       
       // Correct expected amounts: sales + debt payments - expenses
       const expectedCash = cashSales + cashDebtPayments - cashExpenses;
@@ -365,18 +365,18 @@ export default function Finances() {
                         <div>
                           <span className="text-muted-foreground">💵 Efectivo esperado:</span>
                           <p className="font-medium">${(() => {
-                            const cashSales = (dailySales as any[]).filter(sale => sale.paymentMethod === 'efectivo').reduce((sum, sale) => sum + Number(sale.totalAmount), 0);
-                            const cashExpenses = (dailyExpenses as any[]).filter(expense => expense.paymentMethod === 'efectivo').reduce((sum, expense) => sum + Number(expense.amount), 0);
-                            const cashDebtPayments = (dailyPayments as any[]).filter(payment => payment.paymentMethod === 'efectivo').reduce((sum, payment) => sum + Number(payment.amount), 0);
+                            const cashSales = Array.isArray(dailySales) ? dailySales.filter(sale => sale.paymentMethod === 'efectivo').reduce((sum, sale) => sum + Number(sale.totalAmount), 0) : 0;
+                            const cashExpenses = Array.isArray(dailyExpenses) ? dailyExpenses.filter(expense => expense.paymentMethod === 'efectivo').reduce((sum, expense) => sum + Number(expense.amount), 0) : 0;
+                            const cashDebtPayments = Array.isArray(dailyPayments) ? dailyPayments.filter(payment => payment.paymentMethod === 'efectivo').reduce((sum, payment) => sum + Number(payment.amount), 0) : 0;
                             return (cashSales + cashDebtPayments - cashExpenses).toFixed(2);
                           })()}</p>
                         </div>
                         <div>
                           <span className="text-muted-foreground">💳 Transferencias esperadas:</span>
                           <p className="font-medium">${(() => {
-                            const transferSales = (dailySales as any[]).filter(sale => sale.paymentMethod === 'transferencia').reduce((sum, sale) => sum + Number(sale.totalAmount), 0);
-                            const transferExpenses = (dailyExpenses as any[]).filter(expense => expense.paymentMethod === 'transferencia').reduce((sum, expense) => sum + Number(expense.amount), 0);
-                            const transferDebtPayments = (dailyPayments as any[]).filter(payment => payment.paymentMethod === 'transferencia').reduce((sum, payment) => sum + Number(payment.amount), 0);
+                            const transferSales = Array.isArray(dailySales) ? dailySales.filter(sale => sale.paymentMethod === 'transferencia').reduce((sum, sale) => sum + Number(sale.totalAmount), 0) : 0;
+                            const transferExpenses = Array.isArray(dailyExpenses) ? dailyExpenses.filter(expense => expense.paymentMethod === 'transferencia').reduce((sum, expense) => sum + Number(expense.amount), 0) : 0;
+                            const transferDebtPayments = Array.isArray(dailyPayments) ? dailyPayments.filter(payment => payment.paymentMethod === 'transferencia').reduce((sum, payment) => sum + Number(payment.amount), 0) : 0;
                             return (transferSales + transferDebtPayments - transferExpenses).toFixed(2);
                           })()}</p>
                         </div>
@@ -422,14 +422,14 @@ export default function Finances() {
                           <div>
                             <span className="text-muted-foreground">Diferencia Efectivo:</span>
                             <p className={`font-medium ${(() => {
-                              const cashSales = (dailySales as any[]).filter(sale => sale.paymentMethod === 'efectivo').reduce((sum, sale) => sum + Number(sale.totalAmount), 0);
-                              const cashExpenses = (dailyExpenses as any[]).filter(expense => expense.paymentMethod === 'efectivo').reduce((sum, expense) => sum + Number(expense.amount), 0);
+                              const cashSales = Array.isArray(dailySales) ? dailySales.filter(sale => sale.paymentMethod === 'efectivo').reduce((sum, sale) => sum + Number(sale.totalAmount), 0) : 0;
+                              const cashExpenses = Array.isArray(dailyExpenses) ? dailyExpenses.filter(expense => expense.paymentMethod === 'efectivo').reduce((sum, expense) => sum + Number(expense.amount), 0) : 0;
                               const variance = parseFloat(actualCash) - (cashSales - cashExpenses);
                               return variance >= 0 ? 'text-green-600' : 'text-red-600';
                             })()}`}>
                               ${(() => {
-                                const cashSales = (dailySales as any[]).filter(sale => sale.paymentMethod === 'efectivo').reduce((sum, sale) => sum + Number(sale.totalAmount), 0);
-                                const cashExpenses = (dailyExpenses as any[]).filter(expense => expense.paymentMethod === 'efectivo').reduce((sum, expense) => sum + Number(expense.amount), 0);
+                                const cashSales = Array.isArray(dailySales) ? dailySales.filter(sale => sale.paymentMethod === 'efectivo').reduce((sum, sale) => sum + Number(sale.totalAmount), 0) : 0;
+                                const cashExpenses = Array.isArray(dailyExpenses) ? dailyExpenses.filter(expense => expense.paymentMethod === 'efectivo').reduce((sum, expense) => sum + Number(expense.amount), 0) : 0;
                                 return (parseFloat(actualCash) - (cashSales - cashExpenses)).toFixed(2);
                               })()}
                             </p>
@@ -437,14 +437,14 @@ export default function Finances() {
                           <div>
                             <span className="text-muted-foreground">Diferencia Transferencias:</span>
                             <p className={`font-medium ${(() => {
-                              const transferSales = (dailySales as any[]).filter(sale => sale.paymentMethod === 'transferencia').reduce((sum, sale) => sum + Number(sale.totalAmount), 0);
-                              const transferExpenses = (dailyExpenses as any[]).filter(expense => expense.paymentMethod === 'transferencia').reduce((sum, expense) => sum + Number(expense.amount), 0);
+                              const transferSales = Array.isArray(dailySales) ? dailySales.filter(sale => sale.paymentMethod === 'transferencia').reduce((sum, sale) => sum + Number(sale.totalAmount), 0) : 0;
+                              const transferExpenses = Array.isArray(dailyExpenses) ? dailyExpenses.filter(expense => expense.paymentMethod === 'transferencia').reduce((sum, expense) => sum + Number(expense.amount), 0) : 0;
                               const variance = parseFloat(actualTransfers) - (transferSales - transferExpenses);
                               return variance >= 0 ? 'text-green-600' : 'text-red-600';
                             })()}`}>
                               ${(() => {
-                                const transferSales = (dailySales as any[]).filter(sale => sale.paymentMethod === 'transferencia').reduce((sum, sale) => sum + Number(sale.totalAmount), 0);
-                                const transferExpenses = (dailyExpenses as any[]).filter(expense => expense.paymentMethod === 'transferencia').reduce((sum, expense) => sum + Number(expense.amount), 0);
+                                const transferSales = Array.isArray(dailySales) ? dailySales.filter(sale => sale.paymentMethod === 'transferencia').reduce((sum, sale) => sum + Number(sale.totalAmount), 0) : 0;
+                                const transferExpenses = Array.isArray(dailyExpenses) ? dailyExpenses.filter(expense => expense.paymentMethod === 'transferencia').reduce((sum, expense) => sum + Number(expense.amount), 0) : 0;
                                 return (parseFloat(actualTransfers) - (transferSales - transferExpenses)).toFixed(2);
                               })()}
                             </p>
