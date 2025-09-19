@@ -189,7 +189,7 @@ export default function Products() {
 
   // Load low stock products
   const { data: lowStockProducts, isLoading: lowStockLoading } = useQuery({
-    queryKey: ["/api/products/low-stock"],
+    queryKey: ["/api/dashboard/low-stock"],
     enabled: isAuthenticated,
   });
 
