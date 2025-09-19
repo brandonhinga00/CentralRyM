@@ -2,8 +2,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
+import { useLocation } from "wouter";
 
 export default function DailySales() {
+  const [, navigate] = useLocation();
   const today = format(new Date(), 'yyyy-MM-dd');
   
   const { data: salesData, isLoading } = useQuery({
@@ -93,6 +95,7 @@ export default function DailySales() {
           variant="outline"
           className="w-full mt-4"
           data-testid="button-view-all-sales"
+          onClick={() => navigate("/carga-diaria")}
         >
           Ver Todas las Ventas
         </Button>

@@ -1,8 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 
 export default function StockAlerts() {
+  const [, navigate] = useLocation();
+  
   const { data: lowStockProducts, isLoading } = useQuery({
     queryKey: ['/api/dashboard/low-stock'],
     retry: false,
@@ -76,6 +79,7 @@ export default function StockAlerts() {
           variant="outline"
           className="w-full mt-4"
           data-testid="button-view-all-products"
+          onClick={() => navigate("/productos")}
         >
           Ver Todos los Productos
         </Button>

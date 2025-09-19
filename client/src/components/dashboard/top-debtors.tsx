@@ -1,8 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 
 export default function TopDebtors() {
+  const [, navigate] = useLocation();
+  
   const { data: debtors, isLoading } = useQuery({
     queryKey: ['/api/dashboard/top-debtors'],
     retry: false,
@@ -102,6 +105,7 @@ export default function TopDebtors() {
           variant="outline"
           className="w-full mt-4"
           data-testid="button-view-all-debtors"
+          onClick={() => navigate("/clientes")}
         >
           Ver Todos los Deudores
         </Button>
