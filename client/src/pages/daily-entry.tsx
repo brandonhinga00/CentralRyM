@@ -127,7 +127,7 @@ export default function DailyEntry() {
   // Filter products based on search
   const filteredProducts = (products as Product[]).filter((product: Product) =>
     product.name.toLowerCase().includes(productSearch.toLowerCase()) ||
-    product.barcode?.includes(productSearch)
+    product.barcode?.toLowerCase().includes(productSearch.toLowerCase())
   ).slice(0, 10);
 
   // Filter customers based on search
