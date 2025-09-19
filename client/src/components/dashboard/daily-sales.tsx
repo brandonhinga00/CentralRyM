@@ -4,9 +4,13 @@ import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { useLocation } from "wouter";
 
-export default function DailySales() {
+interface DailySalesProps {
+  date?: string;
+}
+
+export default function DailySales({ date }: DailySalesProps) {
   const [, navigate] = useLocation();
-  const today = format(new Date(), 'yyyy-MM-dd');
+  const today = date || format(new Date(), 'yyyy-MM-dd');
   
   const { data: salesData, isLoading } = useQuery({
     queryKey: ['/api/dashboard/recent-sales', today],

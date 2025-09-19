@@ -2,8 +2,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 
-export default function SalesSummary() {
-  const today = format(new Date(), 'yyyy-MM-dd');
+interface SalesSummaryProps {
+  date?: string;
+}
+
+export default function SalesSummary({ date }: SalesSummaryProps) {
+  const today = date || format(new Date(), 'yyyy-MM-dd');
   
   const { data: summary, isLoading } = useQuery({
     queryKey: ['/api/dashboard/summary', today],

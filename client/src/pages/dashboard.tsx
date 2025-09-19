@@ -1,6 +1,7 @@
 import { useAuth } from "@/hooks/useAuth";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
 import SalesSummary from "@/components/dashboard/sales-summary";
@@ -11,10 +12,14 @@ import TopDebtors from "@/components/dashboard/top-debtors";
 import AiSummary from "@/components/dashboard/ai-summary";
 import ApiStatus from "@/components/dashboard/api-status";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Calendar } from "lucide-react";
 
 export default function Dashboard() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
+  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -54,8 +59,30 @@ export default function Dashboard() {
         <Header />
         
         <div className="p-6 space-y-6">
+          {/* Date Selector */}
+          <div className="flex items-center justify-between bg-card rounded-lg p-4 border">
+            <div>
+              <h2 className="text-lg font-semibold">Panel Principal</h2>
+              <p className="text-muted-foreground">Gestiona tu negocio desde aquí</p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="date-selector" className="flex items-center space-x-2 text-sm font-medium">
+                <Calendar className="h-4 w-4" />
+                <span>Fecha:</span>
+              </Label>
+              <Input
+                id="date-selector"
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="w-auto"
+                data-testid="input-dashboard-date"
+              />
+            </div>
+          </div>
+          
           {/* Resumen del Día */}
-          <SalesSummary />
+          <SalesSummary date={selectedDate} />
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Carga Rápida */}
@@ -69,17 +96,17 @@ export default function Dashboard() {
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Ventas del Día */}
-            <DailySales />
+            <DailySales date={selectedDate} />
             
             {/* Deudores Principales */}
             <TopDebtors />
           </div>
           
           {/* Resumen Inteligente con IA */}
-          <AiSummary />
+          <AiSummary date={selectedDate} />
           
           {/* Estado de la API y Conexión Móvil */}
-          <ApiStatus />
+          <ApiStatus date={selectedDate} />
         </div>
       </main>
     </div>

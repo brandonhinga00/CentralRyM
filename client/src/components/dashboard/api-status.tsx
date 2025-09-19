@@ -4,8 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 
-export default function ApiStatus() {
-  const today = format(new Date(), 'yyyy-MM-dd');
+interface ApiStatusProps {
+  date?: string;
+}
+
+export default function ApiStatus({ date }: ApiStatusProps) {
+  const today = date || format(new Date(), 'yyyy-MM-dd');
   
   const { data: summary, isLoading: summaryLoading } = useQuery({
     queryKey: ['/api/dashboard/summary', today],

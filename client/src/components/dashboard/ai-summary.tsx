@@ -1,7 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-export default function AiSummary() {
+interface AiSummaryProps {
+  date?: string;
+}
+
+export default function AiSummary({ date }: AiSummaryProps) {
+  // AiSummary shows weekly summary, not daily, so date is not used currently
   return (
     <Card>
       <CardHeader>
