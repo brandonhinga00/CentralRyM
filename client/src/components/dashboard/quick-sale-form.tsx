@@ -24,6 +24,15 @@ export default function QuickSaleForm() {
   // Search products
   const { data: products } = useQuery({
     queryKey: ['/api/products/search', productSearch],
+    queryFn: async () => {
+      const response = await fetch(`/api/products/search?q=${encodeURIComponent(productSearch)}`, {
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        throw new Error('Error al buscar productos');
+      }
+      return response.json();
+    },
     enabled: productSearch.length > 2,
     retry: false,
   });
@@ -31,7 +40,16 @@ export default function QuickSaleForm() {
   // Search customers
   const { data: customers } = useQuery({
     queryKey: ['/api/customers/search', customerSearch],
-    enabled: customerSearch.length > 2,
+    queryFn: async () => {
+      const response = await fetch(`/api/customers/search?q=${encodeURIComponent(customerSearch)}`, {
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        throw new Error('Error al buscar clientes');
+      }
+      return response.json();
+    },
+    enabled: customerSearch.length > 2 && paymentMethod === 'fiado',
     retry: false,
   });
 
@@ -78,7 +96,21 @@ export default function QuickSaleForm() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log("Form submission data:", {
+      selectedProduct,
+      paymentMethod,
+      quantity,
+      selectedCustomer,
+      productSearch,
+      customerSearch
+    });
+    
     if (!selectedProduct || !paymentMethod || !quantity) {
+      console.log("Validation failed:", {
+        hasProduct: !!selectedProduct,
+        hasPaymentMethod: !!paymentMethod,
+        hasQuantity: !!quantity
+      });
       toast({
         title: "Error",
         description: "Por favor completa todos los campos requeridos.",
@@ -103,15 +135,15 @@ export default function QuickSaleForm() {
         saleDate: selectedDate,
         customerId: paymentMethod === "fiado" ? selectedCustomer?.id : null,
         paymentMethod,
-        totalAmount,
+        totalAmount: totalAmount.toString(),
         isPaid: paymentMethod !== "fiado",
         entryMethod: "manual",
       },
       items: [{
         productId: selectedProduct.id,
-        quantity: Number(quantity),
-        unitPrice: Number(selectedProduct.salePrice),
-        totalPrice: totalAmount,
+        quantity: quantity,
+        unitPrice: selectedProduct.salePrice,
+        totalPrice: totalAmount.toString(),
       }]
     };
 
