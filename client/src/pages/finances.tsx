@@ -1,12 +1,18 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import Sidebar from "@/components/layout/sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { 
   DollarSign, 
@@ -22,15 +28,40 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
+
+// Expense form schema
+const expenseSchema = z.object({
+  description: z.string().min(1, "La descripción es requerida"),
+  amount: z.string().min(1, "El monto es requerido").refine(val => !isNaN(parseFloat(val)) && parseFloat(val) > 0, "El monto debe ser mayor a cero"),
+  category: z.string().min(1, "La categoría es requerida"),
+  paymentMethod: z.enum(["efectivo", "transferencia"], { required_error: "Selecciona un método de pago" }),
+  notes: z.string().optional(),
+});
+
+type ExpenseData = z.infer<typeof expenseSchema>;
+type ExpensePayload = ExpenseData & { expenseDate: string; };
 
 export default function Finances() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [isCashClosingOpen, setIsCashClosingOpen] = useState(false);
+  const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
   const [cashClosed, setCashClosed] = useState(false);
+
+  // Expense form setup
+  const expenseForm = useForm<ExpenseData>({
+    resolver: zodResolver(expenseSchema),
+    defaultValues: {
+      description: "",
+      amount: "",
+      category: "",
+      paymentMethod: "efectivo",
+      notes: "",
+    },
+  });
 
   // API queries for financial data with error handling
   const { data: dailySales = [], isLoading: salesLoading, error: salesError } = useQuery({
@@ -75,6 +106,50 @@ export default function Finances() {
       });
     }
   }, [salesError, expensesError, paymentsError, toast]);
+
+  // Create expense mutation
+  const createExpenseMutation = useMutation({
+    mutationFn: async (expensePayload: ExpensePayload) => {
+      return await apiRequest("POST", "/api/expenses", expensePayload);
+    },
+    onSuccess: (data) => {
+      console.log('Expense created successfully:', data);
+      console.log('Invalidating cache for date:', selectedDate);
+      
+      toast({
+        title: "Gasto registrado",
+        description: "El gasto se registró exitosamente.",
+      });
+      
+      expenseForm.reset();
+      setIsExpenseDialogOpen(false);
+      
+      // Invalidate and refetch relevant caches
+      queryClient.invalidateQueries({ queryKey: ['/api/expenses', selectedDate] });
+      queryClient.invalidateQueries({ queryKey: ['/api/expenses'] }); // Invalidate all expense queries
+      
+      // Force refetch of the specific expenses query
+      queryClient.refetchQueries({ queryKey: ['/api/expenses', selectedDate] });
+      
+      console.log('Cache invalidation completed');
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error al registrar gasto",
+        description: error.message || "No se pudo registrar el gasto",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Handle expense form submission
+  const onExpenseSubmit = (data: ExpenseData) => {
+    const expensePayload: ExpensePayload = {
+      ...data,
+      expenseDate: selectedDate,
+    };
+    createExpenseMutation.mutate(expensePayload);
+  };
 
   // Financial calculations
   const totalSales = Array.isArray(dailySales) ? dailySales.reduce((sum: number, sale: any) => sum + parseFloat(sale.totalAmount || 0), 0) : 0;
@@ -139,7 +214,14 @@ export default function Finances() {
     );
   }
 
-  const formattedDate = format(new Date(selectedDate), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es });
+  // Helper function to ensure valid date
+  const getValidDate = (dateString: string) => {
+    if (!dateString || dateString === '') return new Date();
+    const date = new Date(dateString);
+    return isNaN(date.getTime()) ? new Date() : date;
+  };
+  
+  const formattedDate = format(getValidDate(selectedDate), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es });
 
   const handleCloseCash = () => {
     setCashClosed(true);
@@ -421,10 +503,135 @@ export default function Finances() {
                   <TrendingDown className="h-5 w-5" />
                   <span>Gastos del Día</span>
                 </div>
-                <Button size="sm" className="flex items-center space-x-2" data-testid="button-new-expense">
-                  <Plus className="h-4 w-4" />
-                  <span>Nuevo Gasto</span>
-                </Button>
+                <Dialog open={isExpenseDialogOpen} onOpenChange={setIsExpenseDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" className="flex items-center space-x-2" data-testid="button-new-expense">
+                      <Plus className="h-4 w-4" />
+                      <span>Nuevo Gasto</span>
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                      <DialogTitle>Registrar Nuevo Gasto</DialogTitle>
+                      <DialogDescription>
+                        Registra un gasto para la fecha {format(getValidDate(selectedDate), 'dd/MM/yyyy')}
+                      </DialogDescription>
+                    </DialogHeader>
+                    <Form {...expenseForm}>
+                      <form onSubmit={expenseForm.handleSubmit(onExpenseSubmit)} className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <FormField
+                            control={expenseForm.control}
+                            name="description"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Descripción</FormLabel>
+                                <FormControl>
+                                  <Input {...field} placeholder="Descripción del gasto" data-testid="input-expense-description" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={expenseForm.control}
+                            name="amount"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Monto</FormLabel>
+                                <FormControl>
+                                  <Input {...field} type="number" step="0.01" placeholder="0.00" data-testid="input-expense-amount" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <FormField
+                            control={expenseForm.control}
+                            name="category"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Categoría</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger data-testid="select-expense-category">
+                                      <SelectValue placeholder="Selecciona categoría" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="mercadería">Mercadería</SelectItem>
+                                    <SelectItem value="servicios">Servicios</SelectItem>
+                                    <SelectItem value="mantenimiento">Mantenimiento</SelectItem>
+                                    <SelectItem value="transporte">Transporte</SelectItem>
+                                    <SelectItem value="personal">Personal</SelectItem>
+                                    <SelectItem value="otros">Otros</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={expenseForm.control}
+                            name="paymentMethod"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Método de Pago</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger data-testid="select-expense-payment">
+                                      <SelectValue placeholder="Método de pago" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="efectivo">💵 Efectivo</SelectItem>
+                                    <SelectItem value="transferencia">💳 Transferencia</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        
+                        <FormField
+                          control={expenseForm.control}
+                          name="notes"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Notas (opcional)</FormLabel>
+                              <FormControl>
+                                <Textarea {...field} placeholder="Notas adicionales..." data-testid="input-expense-notes" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <div className="flex justify-end space-x-2">
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            onClick={() => setIsExpenseDialogOpen(false)}
+                            data-testid="button-cancel-expense"
+                          >
+                            Cancelar
+                          </Button>
+                          <Button 
+                            type="submit" 
+                            disabled={createExpenseMutation.isPending}
+                            data-testid="button-save-expense"
+                          >
+                            {createExpenseMutation.isPending ? "Guardando..." : "Guardar Gasto"}
+                          </Button>
+                        </div>
+                      </form>
+                    </Form>
+                  </DialogContent>
+                </Dialog>
               </CardTitle>
             </CardHeader>
             <CardContent>
