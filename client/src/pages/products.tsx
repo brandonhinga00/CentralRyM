@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -173,6 +173,7 @@ export default function Products() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<any>(null);
   const [filters, setFilters] = useState({
     category: "",
     minPrice: "",
@@ -229,6 +230,40 @@ export default function Products() {
            matchesMaxPrice && matchesStockLevel && matchesLowStockOnly;
   }) : [];
 
+  // Mutations for product management
+  const deleteProductMutation = useMutation({
+    mutationFn: async (productId: string) => {
+      return await apiRequest("DELETE", `/api/products/${productId}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Producto eliminado",
+        description: "El producto se ha eliminado exitosamente.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/low-stock"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: "Error al eliminar el producto",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Handler functions
+  const handleEdit = (product: any) => {
+    setEditingProduct(product);
+    setIsDialogOpen(true);
+  };
+
+  const handleDelete = (productId: string) => {
+    if (confirm('¿Estás seguro de que deseas eliminar este producto?')) {
+      deleteProductMutation.mutate(productId);
+    }
+  };
+
   // Redirect to home if not authenticated
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -273,7 +308,13 @@ export default function Products() {
                   <span>Nuevo Producto</span>
                 </Button>
               </DialogTrigger>
-              <ProductFormDialog onClose={() => setIsDialogOpen(false)} />
+              <ProductFormDialog 
+                editingProduct={editingProduct} 
+                onClose={() => {
+                  setIsDialogOpen(false);
+                  setEditingProduct(null);
+                }} 
+              />
             </Dialog>
           </div>
         </div>
@@ -384,7 +425,13 @@ export default function Products() {
                           Agregar Primer Producto
                         </Button>
                       </DialogTrigger>
-                      <ProductFormDialog onClose={() => setIsDialogOpen(false)} />
+                      <ProductFormDialog 
+                        editingProduct={editingProduct} 
+                        onClose={() => {
+                          setIsDialogOpen(false);
+                          setEditingProduct(null);
+                        }} 
+                      />
                     </Dialog>
                   </div>
                 ) : (
@@ -406,10 +453,20 @@ export default function Products() {
                             <p className="text-xs text-muted-foreground">Costo: ${product.costPrice || 'N/A'}</p>
                           </div>
                           <div className="ml-4 flex space-x-2">
-                            <Button variant="outline" size="sm" data-testid={`button-edit-product-${product.id}`}>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => handleEdit(product)}
+                              data-testid={`button-edit-product-${product.id}`}
+                            >
                               <Edit className="h-3 w-3" />
                             </Button>
-                            <Button variant="outline" size="sm" data-testid={`button-delete-product-${product.id}`}>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => handleDelete(product.id)}
+                              data-testid={`button-delete-product-${product.id}`}
+                            >
                               <Trash2 className="h-3 w-3" />
                             </Button>
                           </div>
@@ -427,35 +484,50 @@ export default function Products() {
   );
 }
 
-function ProductFormDialog({ onClose }: { onClose: () => void }) {
+function ProductFormDialog({ editingProduct, onClose }: { editingProduct?: any; onClose: () => void }) {
   const { toast } = useToast();
   
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
     defaultValues: {
-      name: "",
-      barcode: "",
-      category: "",
-      costPrice: "",
-      salePrice: "",
-      currentStock: "",
-      minStock: "",
+      name: editingProduct?.name || "",
+      barcode: editingProduct?.barcode || "",
+      category: editingProduct?.category || "",
+      costPrice: editingProduct?.costPrice?.toString() || "",
+      salePrice: editingProduct?.salePrice?.toString() || "",
+      currentStock: editingProduct?.currentStock?.toString() || "",
+      minStock: editingProduct?.minStock?.toString() || "",
     },
   });
 
+  // Update form when editingProduct changes
+  useEffect(() => {
+    if (editingProduct) {
+      form.reset({
+        name: editingProduct.name || "",
+        barcode: editingProduct.barcode || "",
+        category: editingProduct.category || "",
+        costPrice: editingProduct.costPrice?.toString() || "",
+        salePrice: editingProduct.salePrice?.toString() || "",
+        currentStock: editingProduct.currentStock?.toString() || "",
+        minStock: editingProduct.minStock?.toString() || "",
+      });
+    } else {
+      form.reset({
+        name: "",
+        barcode: "",
+        category: "",
+        costPrice: "",
+        salePrice: "",
+        currentStock: "",
+        minStock: "",
+      });
+    }
+  }, [editingProduct, form]);
+
   const createProductMutation = useMutation({
     mutationFn: async (data: ProductFormData) => {
-      const response = await fetch("/api/products", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      
-      if (!response.ok) {
-        throw new Error("Error al crear el producto");
-      }
-      
-      return response.json();
+      return await apiRequest("POST", "/api/products", data);
     },
     onSuccess: () => {
       toast({
@@ -463,6 +535,7 @@ function ProductFormDialog({ onClose }: { onClose: () => void }) {
         description: "El producto se ha creado exitosamente.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/low-stock"] });
       form.reset();
       onClose();
     },
@@ -470,6 +543,29 @@ function ProductFormDialog({ onClose }: { onClose: () => void }) {
       toast({
         title: "Error",
         description: error.message || "Error al crear el producto",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateProductMutation = useMutation({
+    mutationFn: async (data: ProductFormData) => {
+      return await apiRequest("PUT", `/api/products/${editingProduct.id}`, data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Producto actualizado",
+        description: "El producto se ha actualizado exitosamente.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/low-stock"] });
+      form.reset();
+      onClose();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: "Error al actualizar el producto",
         variant: "destructive",
       });
     },
@@ -491,15 +587,20 @@ function ProductFormDialog({ onClose }: { onClose: () => void }) {
     };
     
     console.log("Transformed data:", transformedData);
-    createProductMutation.mutate(transformedData);
+    
+    if (editingProduct) {
+      updateProductMutation.mutate(transformedData);
+    } else {
+      createProductMutation.mutate(transformedData);
+    }
   };
 
   return (
     <DialogContent className="sm:max-w-[500px]" data-testid="dialog-product-form">
       <DialogHeader>
-        <DialogTitle>Nuevo Producto</DialogTitle>
+        <DialogTitle>{editingProduct ? 'Editar Producto' : 'Nuevo Producto'}</DialogTitle>
         <DialogDescription>
-          Completa la información del producto para agregarlo al inventario.
+          {editingProduct ? 'Actualiza la información del producto.' : 'Completa la información del producto para agregarlo al inventario.'}
         </DialogDescription>
       </DialogHeader>
       
@@ -646,10 +747,15 @@ function ProductFormDialog({ onClose }: { onClose: () => void }) {
             </Button>
             <Button 
               type="submit" 
-              disabled={createProductMutation.isPending}
+              disabled={createProductMutation.isPending || updateProductMutation.isPending}
               data-testid="button-save-product"
             >
-              {createProductMutation.isPending ? "Guardando..." : "Guardar Producto"}
+              {(createProductMutation.isPending || updateProductMutation.isPending) 
+                ? "Guardando..." 
+                : editingProduct 
+                  ? "Actualizar Producto" 
+                  : "Guardar Producto"
+              }
             </Button>
           </div>
         </form>
