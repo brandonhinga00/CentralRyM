@@ -201,7 +201,7 @@ export default function Products() {
     
     // Category filter
     const matchesCategory = !filters.category || 
-      product.category.toLowerCase().includes(filters.category.toLowerCase());
+      (product.category && product.category.toLowerCase().includes(filters.category.toLowerCase()));
     
     // Price range filter
     const salePrice = parseFloat(product.salePrice);
