@@ -622,6 +622,13 @@ export default function DailyEntry() {
                     );
                   })()}
                   
+                  {/* Debug: Form validation state */}
+                  {!form.formState.isValid && (
+                    <div className="text-xs text-red-500 bg-red-50 p-2 rounded">
+                      Debug - Errores del formulario: {JSON.stringify(form.formState.errors)}
+                    </div>
+                  )}
+                  
                   <div className="flex space-x-3">
                     <Button 
                       type="submit" 
