@@ -238,7 +238,7 @@ export default function DailyEntry() {
 
       const saleData = {
         saleDate: selectedDate,
-        customerId: data.paymentMethod === "fiado" ? data.customerId : null,
+        customerId: data.paymentMethod === "fiado" ? data.customerId : undefined,
         paymentMethod: data.paymentMethod,
         totalAmount: totalPrice.toString(),
         isPaid: data.paymentMethod !== "fiado",
