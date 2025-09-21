@@ -25,14 +25,6 @@ export default function Header({ title = "Panel Principal", subtitle }: HeaderPr
             <span className="w-2 h-2 bg-green-500 rounded-full"></span>
             <span className="text-sm font-medium">API Activa</span>
           </div>
-          {/* Cierre de Caja */}
-          <Button 
-            className="flex items-center space-x-2"
-            data-testid="button-close-cash"
-          >
-            <span className="material-icons text-lg">point_of_sale</span>
-            <span>Cerrar Caja</span>
-          </Button>
         </div>
       </div>
     </header>
