@@ -55,7 +55,16 @@ type ExpenseData = z.infer<typeof expenseSchema>;
 export default function DailyEntry() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
-  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [selectedDate, setSelectedDate] = useState(() => {
+    // Check localStorage first for persisted date
+    const storedDate = localStorage.getItem('selectedDate');
+    return storedDate || format(new Date(), 'yyyy-MM-dd');
+  });
+
+  // Update localStorage whenever selectedDate changes
+  useEffect(() => {
+    localStorage.setItem('selectedDate', selectedDate);
+  }, [selectedDate]);
   const [productSearch, setProductSearch] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
   const [showCustomerField, setShowCustomerField] = useState(false);
@@ -621,13 +630,6 @@ export default function DailyEntry() {
                       </div>
                     );
                   })()}
-                  
-                  {/* Debug: Form validation state */}
-                  {!form.formState.isValid && (
-                    <div className="text-xs text-red-500 bg-red-50 p-2 rounded">
-                      Debug - Errores del formulario: {JSON.stringify(form.formState.errors)}
-                    </div>
-                  )}
                   
                   <div className="flex space-x-3">
                     <Button 
