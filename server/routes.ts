@@ -260,7 +260,9 @@ export async function registerRoutes(app: Express, needsHttpServer: boolean = fa
       let sales;
       
       if (customerId) {
+        console.log(`DEBUG: Fetching sales for customer ${customerId}`);
         sales = await storage.getSalesWithItemsByCustomer(customerId as string);
+        console.log(`DEBUG: Found ${sales.length} sales for customer`);
       } else {
         sales = await storage.getSalesWithItems(
           startDate as string,
