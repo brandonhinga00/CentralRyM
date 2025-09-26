@@ -65,7 +65,7 @@ export const products = pgTable("products", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   barcode: varchar("barcode"),
-  categoryId: varchar("category_id").references(() => categories.id),
+  category: varchar("category"), // Changed from categoryId to category as free text
   supplierId: varchar("supplier_id").references(() => suppliers.id),
   costPrice: decimal("cost_price", { precision: 10, scale: 2 }),
   salePrice: decimal("sale_price", { precision: 10, scale: 2 }).notNull(),
@@ -208,10 +208,7 @@ export const categoriesRelations = relations(categories, ({ many }) => ({
 }));
 
 export const productsRelations = relations(products, ({ one, many }) => ({
-  category: one(categories, {
-    fields: [products.categoryId],
-    references: [categories.id],
-  }),
+  // category is now a free text field, no longer a relation
   supplier: one(suppliers, {
     fields: [products.supplierId],
     references: [suppliers.id],
@@ -292,6 +289,7 @@ export const insertProductSchema = createInsertSchema(products)
   })
   .extend({
     // Allow strings for all numeric fields and convert them
+    category: z.string().optional(),
     costPrice: z.string().optional().transform(val => val ? val : undefined),
     salePrice: z.string().min(1, "El precio de venta es requerido"),
     currentStock: z.string().min(1, "El stock actual es requerido").transform(val => parseInt(val)),
