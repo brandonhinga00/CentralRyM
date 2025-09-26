@@ -177,21 +177,17 @@ export default function Finances() {
     createExpenseMutation.mutate(expensePayload);
   };
 
-  // Financial calculations - consistent with dashboard
-  const paidSales = Array.isArray(dailySales) ? dailySales.filter((sale: any) => sale.paymentMethod !== 'fiado') : [];
-  const fiadoSalesList = Array.isArray(dailySales) ? dailySales.filter((sale: any) => sale.paymentMethod === 'fiado') : [];
-
-  const totalSales = paidSales.reduce((sum: number, sale: any) => sum + parseFloat(sale.totalAmount || 0), 0);
-  const fiadoSales = fiadoSalesList.reduce((sum: number, sale: any) => sum + parseFloat(sale.totalAmount || 0), 0);
+  // Financial calculations
+  const totalSales = Array.isArray(dailySales) ? dailySales.reduce((sum: number, sale: any) => sum + parseFloat(sale.totalAmount || 0), 0) : 0;
   const totalExpenses = Array.isArray(dailyExpenses) ? dailyExpenses.reduce((sum: number, expense: any) => sum + parseFloat(expense.amount || 0), 0) : 0;
   const totalPayments = Array.isArray(dailyPayments) ? dailyPayments.reduce((sum: number, payment: any) => sum + parseFloat(payment.amount || 0), 0) : 0;
 
-  // Sales by payment method (only paid sales)
-  const salesByMethod = paidSales.reduce((acc: any, sale: any) => {
+  // Sales by payment method
+  const salesByMethod = Array.isArray(dailySales) ? dailySales.reduce((acc: any, sale: any) => {
     const method = sale.paymentMethod || 'efectivo';
     acc[method] = (acc[method] || 0) + parseFloat(sale.totalAmount || 0);
     return acc;
-  }, {});
+  }, {}) : {};
 
   // Expenses by payment method
   const expensesByMethod = Array.isArray(dailyExpenses) ? dailyExpenses.reduce((acc: any, expense: any) => {
@@ -200,7 +196,11 @@ export default function Finances() {
     return acc;
   }, {}) : {};
 
-  // Net calculations - consistent with dashboard
+  // Fiado (credit) sales - tracked separately, NOT counted as income
+  const fiadoSales = salesByMethod.fiado || 0;
+
+  // CORRECTED Net calculations - Only count cash and transfer sales as actual income
+  // Fiado sales are credit given, not actual money received
   const actualSalesIncome = (salesByMethod.efectivo || 0) + (salesByMethod.transferencia || 0);
   const netIncome = actualSalesIncome + totalPayments; // Only actual money received
   const netBalance = netIncome - totalExpenses;
@@ -566,35 +566,16 @@ export default function Finances() {
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">Ventas Pagadas</p>
+                      <p className="text-sm text-muted-foreground">Ingresos del Día</p>
                       <p className="text-2xl font-bold text-green-600" data-testid="text-daily-income">
-                        ${totalSales.toFixed(2)}
+                        ${netIncome.toFixed(2)}
                       </p>
                       <p className="text-xs text-green-600 mt-1">
-                        Efectivo + transferencias
+                        Solo efectivo y transferencias
                       </p>
                     </div>
                     <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                       <TrendingUp className="h-6 w-6 text-green-600" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Fiado Otorgado</p>
-                      <p className="text-2xl font-bold text-orange-600" data-testid="text-credit-given">
-                        ${fiadoSales.toFixed(2)}
-                      </p>
-                      <p className="text-xs text-orange-600 mt-1">
-                        Crédito otorgado
-                      </p>
-                    </div>
-                    <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                      <FileText className="h-6 w-6 text-orange-600" />
                     </div>
                   </div>
                 </CardContent>
@@ -614,6 +595,25 @@ export default function Finances() {
                     </div>
                     <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
                       <TrendingDown className="h-6 w-6 text-red-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Fiado Otorgado</p>
+                      <p className="text-2xl font-bold text-orange-600" data-testid="text-credit-given">
+                        ${fiadoSales.toFixed(2)}
+                      </p>
+                      <p className="text-xs text-orange-600 mt-1">
+                        Crédito otorgado (no es ingreso)
+                      </p>
+                    </div>
+                    <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                      <FileText className="h-6 w-6 text-orange-600" />
                     </div>
                   </div>
                 </CardContent>
