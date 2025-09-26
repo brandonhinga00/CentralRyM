@@ -41,14 +41,21 @@ type PaymentFormData = z.infer<typeof paymentSchema>;
 function AccountTransactionHistory({ sales, payments }: { sales: any[], payments: any[] }) {
   // Combine and sort transactions by date
   const transactions = [
-    ...sales.map((sale: any) => ({
-      id: sale.id,
-      type: 'sale' as const,
-      date: sale.saleDate,
-      description: `Venta ${sale.paymentMethod}`,
-      amount: Number(sale.totalAmount),
-      balance: 0, // Will be calculated below
-    })),
+    ...sales.map((sale: any) => {
+      // Build product description from sale items
+      const productNames = sale.saleItems 
+        ? sale.saleItems.map((item: any) => item.product.name).join(', ')
+        : 'Producto no especificado';
+      
+      return {
+        id: sale.id,
+        type: 'sale' as const,
+        date: sale.saleDate,
+        description: `${productNames} (${sale.paymentMethod})`,
+        amount: Number(sale.totalAmount),
+        balance: 0, // Will be calculated below
+      };
+    }),
     ...payments.map((payment: any) => ({
       id: payment.id,
       type: 'payment' as const,
