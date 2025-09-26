@@ -63,7 +63,7 @@ export default function QuickSaleForm() {
       }
       return response.json();
     },
-    enabled: customerSearch.length > 2 && paymentMethod === "fiado",
+    enabled: customerSearch.length > 2, // Habilitar búsqueda para todos los métodos de pago
     retry: false,
   });
 
@@ -149,7 +149,7 @@ export default function QuickSaleForm() {
     const saleData = {
       sale: {
         saleDate: selectedDate,
-        customerId: paymentMethod === "fiado" ? selectedCustomer?.id : null,
+        customerId: selectedCustomer?.id || null, // Incluir cliente en todas las ventas si está presente
         paymentMethod,
         totalAmount: totalAmount.toString(),
         isPaid: paymentMethod !== "fiado",
@@ -255,7 +255,9 @@ export default function QuickSaleForm() {
               </Select>
             </div>
             <div>
-              <Label htmlFor="customer">Cliente</Label>
+              <Label htmlFor="customer">
+                Cliente {paymentMethod === "fiado" ? <span className="text-red-500">*</span> : <span className="text-muted-foreground">(opcional)</span>}
+              </Label>
               <div className="relative">
                 <Input
                   id="customer"
@@ -263,7 +265,7 @@ export default function QuickSaleForm() {
                   value={customerSearch}
                   onChange={(e) => setCustomerSearch(e.target.value)}
                   className="pr-10"
-                  //disabled={paymentMethod !== "fiado"}
+                  // Campo siempre habilitado para seguimiento de hábitos de compra
                   data-testid="input-customer-search"
                 />
                 <span className="absolute right-3 top-2.5 material-icons text-muted-foreground text-sm">
