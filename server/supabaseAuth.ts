@@ -70,9 +70,7 @@ export async function setupAuth(app: Express) {
         // Store session
         (req.session as any).user = data.user;
         (req.session as any).access_token = data.session?.access_token;
-        req.session.save(() => {
-          res.redirect('/');
-        });
+        res.redirect('/');
       }
     } else {
       res.status(400).json({ error: 'No code provided' });
