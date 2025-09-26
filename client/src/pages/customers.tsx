@@ -815,6 +815,17 @@ export default function Customers() {
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
+                            {/* Botón de historial disponible para TODOS los clientes */}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleViewAccount(customer)}
+                              data-testid={`button-account-${customer.id}`}
+                              title="Ver Historial de Compras"
+                            >
+                              <ShoppingCart className="h-4 w-4" />
+                            </Button>
+                            {/* Botones adicionales solo para clientes con deuda */}
                             {Number(customer.currentDebt || 0) > 0 && (
                               <>
                                 <Button
@@ -825,15 +836,6 @@ export default function Customers() {
                                   title="Registrar Pago"
                                 >
                                   <DollarSign className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleViewAccount(customer)}
-                                  data-testid={`button-account-${customer.id}`}
-                                  title="Ver Cuenta"
-                                >
-                                  <CreditCard className="h-4 w-4" />
                                 </Button>
                                 <Button
                                   variant="outline"
