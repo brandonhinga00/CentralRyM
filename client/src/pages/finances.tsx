@@ -136,22 +136,27 @@ export default function Finances() {
     onSuccess: (data) => {
       console.log('Expense created successfully:', data);
       console.log('Invalidating cache for date:', selectedDate);
-      
+
       toast({
         title: "Gasto registrado",
         description: "El gasto se registró exitosamente.",
       });
-      
+
       expenseForm.reset();
       setIsExpenseDialogOpen(false);
-      
-      // Invalidate and refetch relevant caches
+
+      // Invalidate all queries used by the finances page to ensure complete refresh
       queryClient.invalidateQueries({ queryKey: ['/api/expenses', selectedDate] });
-      queryClient.invalidateQueries({ queryKey: ['/api/expenses'] }); // Invalidate all expense queries
-      
-      // Force refetch of the specific expenses query
-      queryClient.refetchQueries({ queryKey: ['/api/expenses', selectedDate] });
-      
+      queryClient.invalidateQueries({ queryKey: ['/api/expenses'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/sales', selectedDate] });
+      queryClient.invalidateQueries({ queryKey: ['/api/sales'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/payments', selectedDate] });
+      queryClient.invalidateQueries({ queryKey: ['/api/payments'] });
+
+      // Invalidate dashboard queries that might be affected
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/quick-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary', selectedDate] });
+
       console.log('Cache invalidation completed');
     },
     onError: (error: any) => {

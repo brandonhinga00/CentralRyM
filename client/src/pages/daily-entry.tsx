@@ -189,11 +189,14 @@ export default function DailyEntry() {
       expenseForm.reset();
       setIsExpenseDialogOpen(false);
       refetchExpenses();
-      // Invalidate relevant caches
+      // Invalidate all relevant caches for complete cross-page updates
       queryClient.invalidateQueries({ queryKey: ['/api/expenses'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/quick-stats'] });
-      // Invalidate date-specific queries for dashboard and finances
       queryClient.invalidateQueries({ queryKey: ['/api/expenses', selectedDate] });
+      queryClient.invalidateQueries({ queryKey: ['/api/sales'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/sales', selectedDate] });
+      queryClient.invalidateQueries({ queryKey: ['/api/payments'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/payments', selectedDate] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/quick-stats'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary', selectedDate] });
     },
     onError: (error: any) => {
