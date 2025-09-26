@@ -629,25 +629,18 @@ export default function DailyEntry() {
                     );
                   })()}
                   
-                  {/* Debug form errors - mostrar qué campos faltan */}
-                  {!form.formState.isValid && (
-                    <div className="text-sm text-muted-foreground p-3 bg-muted rounded-lg">
-                      <p className="font-medium mb-2">Campos requeridos:</p>
-                      <ul className="space-y-1">
-                        {!form.watch("productId") && <li>• Selecciona un producto</li>}
-                        {!form.watch("unitPrice") && <li>• Ingresa el precio</li>}
-                        {!form.watch("quantity") && <li>• Ingresa la cantidad</li>}
-                        {form.watch("paymentMethod") === "fiado" && !form.watch("customerId") && <li>• Selecciona un cliente (para fiado)</li>}
-                      </ul>
-                    </div>
-                  )}
-                  
                   <div className="flex space-x-3">
                     <Button 
                       type="submit" 
                       className="flex-1 flex items-center justify-center space-x-2"
                       data-testid="button-register-sale"
-                      disabled={createSaleMutation.isPending || !form.formState.isValid}
+                      disabled={
+                        createSaleMutation.isPending || 
+                        !form.watch("productId") || 
+                        !form.watch("quantity") ||
+                        !form.watch("unitPrice") ||
+                        (form.watch("paymentMethod") === "fiado" && !form.watch("customerId"))
+                      }
                     >
                       {createSaleMutation.isPending ? (
                         <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
