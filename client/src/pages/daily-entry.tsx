@@ -164,6 +164,10 @@ export default function DailyEntry() {
       queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/quick-stats'] });
       queryClient.invalidateQueries({ queryKey: ['/api/sales'] });
+      // Invalidate date-specific queries for dashboard and finances
+      queryClient.invalidateQueries({ queryKey: ['/api/sales', selectedDate] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary', selectedDate] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/recent-sales', selectedDate] });
     },
     onError: (error: any) => {
       toast({
@@ -193,6 +197,9 @@ export default function DailyEntry() {
       // Invalidate relevant caches
       queryClient.invalidateQueries({ queryKey: ['/api/expenses'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/quick-stats'] });
+      // Invalidate date-specific queries for dashboard and finances
+      queryClient.invalidateQueries({ queryKey: ['/api/expenses', selectedDate] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary', selectedDate] });
     },
     onError: (error: any) => {
       toast({
