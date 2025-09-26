@@ -400,35 +400,46 @@ export class DatabaseStorage implements IStorage {
 
   // Sale operations
   async getSales(startDate?: string, endDate?: string): Promise<Sale[]> {
-    let query = db.select().from(sales);
-
     if (startDate || endDate) {
       const conditions = [];
       if (startDate) conditions.push(gte(sales.saleDate, startDate));
       if (endDate) conditions.push(lte(sales.saleDate, endDate));
-      query = query.where(and(...conditions));
+      
+      return await db
+        .select()
+        .from(sales)
+        .where(and(...conditions))
+        .orderBy(desc(sales.saleDate), desc(sales.createdAt));
     }
 
-    return await query.orderBy(desc(sales.saleDate), desc(sales.createdAt));
+    return await db
+      .select()
+      .from(sales)
+      .orderBy(desc(sales.saleDate), desc(sales.createdAt));
   }
 
   async getSalesWithItems(
     startDate?: string,
     endDate?: string,
   ): Promise<(Sale & { saleItems: (SaleItem & { product: Product })[] })[]> {
-    let salesQuery = db.select().from(sales);
+    let salesData;
 
     if (startDate || endDate) {
       const conditions = [];
       if (startDate) conditions.push(gte(sales.saleDate, startDate));
       if (endDate) conditions.push(lte(sales.saleDate, endDate));
-      salesQuery = salesQuery.where(and(...conditions));
+      
+      salesData = await db
+        .select()
+        .from(sales)
+        .where(and(...conditions))
+        .orderBy(desc(sales.saleDate), desc(sales.createdAt));
+    } else {
+      salesData = await db
+        .select()
+        .from(sales)
+        .orderBy(desc(sales.saleDate), desc(sales.createdAt));
     }
-
-    const salesData = await salesQuery.orderBy(
-      desc(sales.saleDate),
-      desc(sales.createdAt),
-    );
 
     const salesWithItems = await Promise.all(
       salesData.map(async (sale) => {
@@ -528,19 +539,22 @@ export class DatabaseStorage implements IStorage {
 
   // Payment operations
   async getPayments(startDate?: string, endDate?: string): Promise<Payment[]> {
-    let query = db.select().from(payments);
-
     if (startDate || endDate) {
       const conditions = [];
       if (startDate) conditions.push(gte(payments.paymentDate, startDate));
       if (endDate) conditions.push(lte(payments.paymentDate, endDate));
-      query = query.where(and(...conditions));
+      
+      return await db
+        .select()
+        .from(payments)
+        .where(and(...conditions))
+        .orderBy(desc(payments.paymentDate), desc(payments.createdAt));
     }
 
-    return await query.orderBy(
-      desc(payments.paymentDate),
-      desc(payments.createdAt),
-    );
+    return await db
+      .select()
+      .from(payments)
+      .orderBy(desc(payments.paymentDate), desc(payments.createdAt));
   }
 
   async getPaymentsByCustomer(customerId: string): Promise<Payment[]> {
@@ -589,19 +603,22 @@ export class DatabaseStorage implements IStorage {
 
   // Expense operations
   async getExpenses(startDate?: string, endDate?: string): Promise<Expense[]> {
-    let query = db.select().from(expenses);
-
     if (startDate || endDate) {
       const conditions = [];
       if (startDate) conditions.push(gte(expenses.expenseDate, startDate));
       if (endDate) conditions.push(lte(expenses.expenseDate, endDate));
-      query = query.where(and(...conditions));
+      
+      return await db
+        .select()
+        .from(expenses)
+        .where(and(...conditions))
+        .orderBy(desc(expenses.expenseDate), desc(expenses.createdAt));
     }
 
-    return await query.orderBy(
-      desc(expenses.expenseDate),
-      desc(expenses.createdAt),
-    );
+    return await db
+      .select()
+      .from(expenses)
+      .orderBy(desc(expenses.expenseDate), desc(expenses.createdAt));
   }
 
   async createExpense(expense: InsertExpense): Promise<Expense> {
@@ -631,8 +648,6 @@ export class DatabaseStorage implements IStorage {
     startDate?: string,
     endDate?: string,
   ): Promise<StockMovement[]> {
-    let query = db.select().from(stockMovements);
-
     const conditions = [];
     if (productId) conditions.push(eq(stockMovements.productId, productId));
     if (startDate)
@@ -641,10 +656,17 @@ export class DatabaseStorage implements IStorage {
       conditions.push(lte(stockMovements.createdAt, new Date(endDate)));
 
     if (conditions.length > 0) {
-      query = query.where(and(...conditions));
+      return await db
+        .select()
+        .from(stockMovements)
+        .where(and(...conditions))
+        .orderBy(desc(stockMovements.createdAt));
     }
 
-    return await query.orderBy(desc(stockMovements.createdAt));
+    return await db
+      .select()
+      .from(stockMovements)
+      .orderBy(desc(stockMovements.createdAt));
   }
 
   async createStockMovement(
@@ -756,22 +778,35 @@ export class DatabaseStorage implements IStorage {
     startDate?: string,
     endDate?: string,
   ): Promise<CashClosing[]> {
-    let query = db.select().from(cashClosings);
-
     if (startDate && endDate) {
-      query = query.where(
-        and(
-          gte(cashClosings.closingDate, startDate),
-          lte(cashClosings.closingDate, endDate),
-        ),
-      );
+      return await db
+        .select()
+        .from(cashClosings)
+        .where(
+          and(
+            gte(cashClosings.closingDate, startDate),
+            lte(cashClosings.closingDate, endDate),
+          ),
+        )
+        .orderBy(desc(cashClosings.closingDate));
     } else if (startDate) {
-      query = query.where(gte(cashClosings.closingDate, startDate));
+      return await db
+        .select()
+        .from(cashClosings)
+        .where(gte(cashClosings.closingDate, startDate))
+        .orderBy(desc(cashClosings.closingDate));
     } else if (endDate) {
-      query = query.where(lte(cashClosings.closingDate, endDate));
+      return await db
+        .select()
+        .from(cashClosings)
+        .where(lte(cashClosings.closingDate, endDate))
+        .orderBy(desc(cashClosings.closingDate));
     }
 
-    return await query.orderBy(desc(cashClosings.closingDate));
+    return await db
+      .select()
+      .from(cashClosings)
+      .orderBy(desc(cashClosings.closingDate));
   }
 
   async getCashClosing(id: string): Promise<CashClosing | undefined> {

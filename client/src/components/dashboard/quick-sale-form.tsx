@@ -255,7 +255,7 @@ export default function QuickSaleForm() {
               </Select>
             </div>
             <div>
-              <Label htmlFor="customer">Cliente (si es fiado)</Label>
+              <Label htmlFor="customer">Cliente</Label>
               <div className="relative">
                 <Input
                   id="customer"
@@ -270,26 +270,24 @@ export default function QuickSaleForm() {
                   search
                 </span>
               </div>
-              {paymentMethod === "fiado" &&
-                customers &&
-                (customers as any[]).length > 0 && (
-                  <div className="mt-1 border border-border rounded-md bg-card max-h-32 overflow-y-auto">
-                    {(customers as any[]).map((customer: any) => (
-                      <button
-                        key={customer.id}
-                        type="button"
-                        className="w-full text-left px-3 py-2 hover:bg-accent text-sm"
-                        onClick={() => {
-                          setSelectedCustomer(customer);
-                          setCustomerSearch(customer.name);
-                        }}
-                        data-testid={`option-customer-${customer.id}`}
-                      >
-                        {customer.name}
-                      </button>
-                    ))}
-                  </div>
-                )}
+              {customers && (customers as any[]).length > 0 && (
+                <div className="mt-1 border border-border rounded-md bg-card max-h-32 overflow-y-auto">
+                  {(customers as any[]).map((customer: any) => (
+                    <button
+                      key={customer.id}
+                      type="button"
+                      className="w-full text-left px-3 py-2 hover:bg-accent text-sm"
+                      onClick={() => {
+                        setSelectedCustomer(customer);
+                        setCustomerSearch(customer.name);
+                      }}
+                      data-testid={`option-customer-${customer.id}`}
+                    >
+                      {customer.name}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
