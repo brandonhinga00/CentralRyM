@@ -294,7 +294,7 @@ export default function DailyEntry() {
     );
   }
 
-  const formattedDate = format(new Date(selectedDate), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es });
+  const formattedDate = format(new Date(), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es });
   
   // Daily calculations
   const totalSales = Array.isArray(dailySales) ? dailySales.reduce((sum: number, sale: any) => sum + parseFloat(sale.totalAmount || 0), 0) : 0;
