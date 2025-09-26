@@ -222,11 +222,7 @@ export default function DailyEntry() {
   const paymentMethod = form.watch("paymentMethod");
   useEffect(() => {
     setShowCustomerField(paymentMethod === "fiado");
-    if (paymentMethod !== "fiado") {
-      form.setValue("customerId", "");
-      form.setValue("customerName", "");
-      setCustomerSearch("");
-    }
+    // No borramos automáticamente el cliente - permitir registro en todas las ventas
   }, [paymentMethod, form]);
 
   // Form submission
@@ -238,7 +234,7 @@ export default function DailyEntry() {
 
       const saleData = {
         saleDate: selectedDate,
-        customerId: data.paymentMethod === "fiado" ? data.customerId : undefined,
+        customerId: data.customerId || undefined, // Incluir cliente en todas las ventas si está presente
         paymentMethod: data.paymentMethod,
         totalAmount: totalPrice.toString(),
         isPaid: data.paymentMethod !== "fiado",
@@ -545,15 +541,18 @@ export default function DailyEntry() {
                       )}
                     />
                     
-                    {/* Customer Search (only for fiado) */}
-                    {showCustomerField && (
-                      <div className="space-y-2">
-                        <FormField
-                          control={form.control}
-                          name="customerName"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Cliente <span className="text-red-500">*</span></FormLabel>
+                    {/* Customer Search - Always available */}
+                    <div className="space-y-2">
+                      <FormField
+                        control={form.control}
+                        name="customerName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>
+                              Cliente 
+                              {paymentMethod === "fiado" && <span className="text-red-500">*</span>}
+                              {paymentMethod !== "fiado" && <span className="text-xs text-muted-foreground">(opcional)</span>}
+                            </FormLabel>
                               <FormControl>
                                 <div className="relative">
                                   <Input 
@@ -602,8 +601,7 @@ export default function DailyEntry() {
                             ))}
                           </div>
                         )}
-                      </div>
-                    )}
+                    </div>
                   </div>
                   
                   {/* Price Display */}
