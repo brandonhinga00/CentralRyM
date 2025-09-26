@@ -57,7 +57,9 @@ export default function DailyEntry() {
    const { isAuthenticated, isLoading } = useAuth();
    const [selectedDate, setSelectedDate] = useState(() => {
      // Always start with today's date
-     return format(new Date(), 'yyyy-MM-dd');
+     const today = format(new Date(), 'yyyy-MM-dd');
+     console.log('DailyEntry initialized with date:', today);
+     return today;
    });
 
   const [productSearch, setProductSearch] = useState("");
@@ -120,13 +122,25 @@ export default function DailyEntry() {
 
   const { data: dailySales = [], isLoading: salesLoading, refetch: refetchSales, error: salesError } = useQuery({
     queryKey: ['/api/sales', selectedDate],
-    queryFn: () => apiRequest("GET", `/api/sales?startDate=${selectedDate}&endDate=${selectedDate}`),
+    queryFn: async () => {
+      console.log('Fetching sales for date:', selectedDate);
+      const response = await apiRequest("GET", `/api/sales?startDate=${selectedDate}&endDate=${selectedDate}`);
+      const data = await response.json();
+      console.log('Sales API response data:', data);
+      return data;
+    },
     enabled: !!selectedDate,
   });
 
   const { data: dailyExpenses = [], isLoading: expensesLoading, refetch: refetchExpenses, error: expensesError } = useQuery({
     queryKey: ['/api/expenses', selectedDate],
-    queryFn: () => apiRequest("GET", `/api/expenses?startDate=${selectedDate}&endDate=${selectedDate}`),
+    queryFn: async () => {
+      console.log('Fetching expenses for date:', selectedDate);
+      const response = await apiRequest("GET", `/api/expenses?startDate=${selectedDate}&endDate=${selectedDate}`);
+      const data = await response.json();
+      console.log('Expenses API response data:', data);
+      return data;
+    },
     enabled: !!selectedDate,
   });
 
