@@ -68,7 +68,7 @@ export async function setupAuth(app: Express) {
         res.status(500).json({ error: error.message });
       } else {
         // Store session
-        (req.session as any).user = data.user;
+        (req.session as any).user = { id: data.user.id, email: data.user.email };
         (req.session as any).access_token = data.session?.access_token;
         res.redirect('/');
       }
