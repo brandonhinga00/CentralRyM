@@ -242,7 +242,7 @@ export default function Finances() {
     return isNaN(date.getTime()) ? new Date() : date;
   };
   
-  const formattedDate = format(getValidDate(selectedDate), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es });
+  const formattedDate = format(new Date(), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es });
 
   // Enhanced cash closing with reconciliation
   const [actualCash, setActualCash] = useState("");
