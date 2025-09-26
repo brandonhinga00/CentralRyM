@@ -1,9 +1,34 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { ShoppingCart, TrendingUp, Users, Smartphone } from "lucide-react";
-import { signInWithGoogle } from "@/lib/authUtils";
+import { signInWithPassword } from "@/lib/authUtils";
+import { useState } from "react";
 
 export default function Landing() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    const { data, error } = await signInWithPassword(email, password);
+
+    if (error) {
+      setError(error.message);
+    } else {
+      // Redirect will happen automatically
+      window.location.href = "/";
+    }
+
+    setLoading(false);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
@@ -19,13 +44,6 @@ export default function Landing() {
                 <p className="text-sm text-muted-foreground">R&M Store - Córdoba, Argentina</p>
               </div>
             </div>
-            <Button
-              onClick={signInWithGoogle}
-              size="lg"
-              data-testid="button-login"
-            >
-              Iniciar Sesión
-            </Button>
           </div>
         </div>
       </header>
@@ -33,22 +51,40 @@ export default function Landing() {
       {/* Hero Section */}
       <section className="py-20">
         <div className="container mx-auto px-4 text-center">
-          <div className="max-w-3xl mx-auto">
+          <div className="max-w-md mx-auto">
             <h2 className="text-4xl font-bold text-foreground mb-6">
-              Gestión Integral para Tu Negocio
+              Iniciar Sesión
             </h2>
-            <p className="text-xl text-muted-foreground mb-8">
-              El sistema completo para administrar ventas, inventario, clientes y finanzas de tu kiosco. 
-              Con API segura para tu asistente móvil y análisis inteligentes.
-            </p>
-            <Button
-              size="lg"
-              className="text-lg px-8 py-4"
-              onClick={signInWithGoogle}
-              data-testid="button-get-started"
-            >
-              Comenzar Ahora
-            </Button>
+            <Card>
+              <CardContent className="p-6">
+                <form onSubmit={handleLogin} className="space-y-4">
+                  <div>
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="password">Contraseña</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  {error && <p className="text-red-500 text-sm">{error}</p>}
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? "Iniciando..." : "Iniciar Sesión"}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
