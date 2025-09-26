@@ -30,7 +30,6 @@ export function getSession() {
     cookie: {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
       maxAge: sessionTtl,
     },
   });
@@ -40,10 +39,20 @@ export async function setupAuth(app: Express) {
   app.set('trust proxy', 1);
   app.use(getSession());
 
-  // Middleware to set user from session
+  // Middleware to verify Supabase JWT
   app.use(async (req, res, next) => {
-    if ((req.session as any).user) {
-      req.user = (req.session as any).user;
+    const token = req.headers.authorization?.replace('Bearer ', '') ||
+                  req.query.access_token as string;
+
+    if (token) {
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+        if (user && !error) {
+          req.user = user;
+        }
+      } catch (err) {
+        // Invalid token, continue without user
+      }
     }
     next();
   });
@@ -75,7 +84,7 @@ export async function setupAuth(app: Express) {
         res.status(500).json({ error: error.message });
       } else {
         // Store session
-        (req.session as any).user = { id: data.user.id, email: data.user.email };
+        (req.session as any).user = data.user;
         (req.session as any).access_token = data.session?.access_token;
         res.redirect('/');
       }
