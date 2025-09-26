@@ -60,10 +60,6 @@ export default function DailyEntry() {
     return format(new Date(), 'yyyy-MM-dd');
   });
 
-  // Update localStorage whenever selectedDate changes
-  useEffect(() => {
-    localStorage.setItem('selectedDate', selectedDate);
-  }, [selectedDate]);
   const [productSearch, setProductSearch] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
   const [showCustomerField, setShowCustomerField] = useState(false);

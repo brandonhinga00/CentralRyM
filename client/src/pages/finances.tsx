@@ -47,7 +47,10 @@ type ExpensePayload = ExpenseData & { expenseDate: string; };
 export default function Finances() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
-  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [selectedDate, setSelectedDate] = useState(() => {
+    // Always start with today's date
+    return format(new Date(), 'yyyy-MM-dd');
+  });
   const [isCashClosingOpen, setIsCashClosingOpen] = useState(false);
   const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
   const [cashClosed, setCashClosed] = useState(false);

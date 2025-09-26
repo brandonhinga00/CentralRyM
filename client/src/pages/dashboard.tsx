@@ -19,15 +19,10 @@ export default function Dashboard() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
   const [selectedDate, setSelectedDate] = useState(() => {
-    // Check localStorage first for persisted date
-    const storedDate = localStorage.getItem('selectedDate');
-    return storedDate || format(new Date(), 'yyyy-MM-dd');
+    // Always start with today's date
+    return format(new Date(), 'yyyy-MM-dd');
   });
 
-  // Update localStorage whenever selectedDate changes
-  useEffect(() => {
-    localStorage.setItem('selectedDate', selectedDate);
-  }, [selectedDate]);
 
   // Redirect to home if not authenticated
   useEffect(() => {
