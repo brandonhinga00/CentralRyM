@@ -39,20 +39,10 @@ export async function setupAuth(app: Express) {
   app.set('trust proxy', 1);
   app.use(getSession());
 
-  // Middleware to verify Supabase JWT
+  // Middleware to set user from session
   app.use(async (req, res, next) => {
-    const token = req.headers.authorization?.replace('Bearer ', '') ||
-                  req.query.access_token as string;
-
-    if (token) {
-      try {
-        const { data: { user }, error } = await supabase.auth.getUser(token);
-        if (user && !error) {
-          req.user = user;
-        }
-      } catch (err) {
-        // Invalid token, continue without user
-      }
+    if ((req.session as any).user) {
+      req.user = (req.session as any).user;
     }
     next();
   });
