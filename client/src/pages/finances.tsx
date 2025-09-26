@@ -65,7 +65,7 @@ export default function Finances() {
   });
 
   // API queries for financial data with error handling
-  const { data: dailySales = [], isLoading: salesLoading, error: salesError } = useQuery({
+  const { data: dailySalesData, isLoading: salesLoading, error: salesError } = useQuery({
     queryKey: ['/api/sales', selectedDate],
     queryFn: async () => {
       const response = await apiRequest("GET", `/api/sales?startDate=${selectedDate}&endDate=${selectedDate}`);
@@ -75,7 +75,7 @@ export default function Finances() {
     placeholderData: [],
   });
 
-  const { data: dailyExpenses = [], isLoading: expensesLoading, error: expensesError } = useQuery({
+  const { data: dailyExpensesData, isLoading: expensesLoading, error: expensesError } = useQuery({
     queryKey: ['/api/expenses', selectedDate],
     queryFn: async () => {
       const response = await apiRequest("GET", `/api/expenses?startDate=${selectedDate}&endDate=${selectedDate}`);
@@ -85,7 +85,7 @@ export default function Finances() {
     placeholderData: [],
   });
 
-  const { data: dailyPayments = [], isLoading: paymentsLoading, error: paymentsError } = useQuery({
+  const { data: dailyPaymentsData, isLoading: paymentsLoading, error: paymentsError } = useQuery({
     queryKey: ['/api/payments', selectedDate],
     queryFn: async () => {
       const response = await apiRequest("GET", `/api/payments?startDate=${selectedDate}&endDate=${selectedDate}`);
@@ -94,6 +94,11 @@ export default function Finances() {
     enabled: !!selectedDate,
     placeholderData: [],
   });
+
+  // Ensure data is always an array
+  const dailySales = Array.isArray(dailySalesData) ? dailySalesData : [];
+  const dailyExpenses = Array.isArray(dailyExpensesData) ? dailyExpensesData : [];
+  const dailyPayments = Array.isArray(dailyPaymentsData) ? dailyPaymentsData : [];
 
   // Handle API errors
   useEffect(() => {
