@@ -120,20 +120,24 @@ export default function DailyEntry() {
     enabled: !!customerSearch && customerSearch.length >= 2,
   });
 
-  const { data: dailySales = [], isLoading: salesLoading, refetch: refetchSales } = useQuery({
+  const { data: dailySales = [], isLoading: salesLoading, refetch: refetchSales, error: salesError } = useQuery({
     queryKey: ['/api/sales', selectedDate],
-    queryFn: () => {
+    queryFn: async () => {
       console.log('Fetching sales for date:', selectedDate);
-      return apiRequest("GET", `/api/sales?startDate=${selectedDate}&endDate=${selectedDate}`);
+      const result = await apiRequest("GET", `/api/sales?startDate=${selectedDate}&endDate=${selectedDate}`);
+      console.log('Sales API response:', result);
+      return result;
     },
     enabled: !!selectedDate,
   });
 
-  const { data: dailyExpenses = [], isLoading: expensesLoading, refetch: refetchExpenses } = useQuery({
+  const { data: dailyExpenses = [], isLoading: expensesLoading, refetch: refetchExpenses, error: expensesError } = useQuery({
     queryKey: ['/api/expenses', selectedDate],
-    queryFn: () => {
+    queryFn: async () => {
       console.log('Fetching expenses for date:', selectedDate);
-      return apiRequest("GET", `/api/expenses?startDate=${selectedDate}&endDate=${selectedDate}`);
+      const result = await apiRequest("GET", `/api/expenses?startDate=${selectedDate}&endDate=${selectedDate}`);
+      console.log('Expenses API response:', result);
+      return result;
     },
     enabled: !!selectedDate,
   });
@@ -217,6 +221,26 @@ export default function DailyEntry() {
       });
     },
   });
+
+  // Handle API errors
+  useEffect(() => {
+    if (salesError) {
+      console.error('Sales query error:', salesError);
+      toast({
+        title: "Error al cargar ventas",
+        description: "No se pudieron cargar las ventas del día seleccionado",
+        variant: "destructive",
+      });
+    }
+    if (expensesError) {
+      console.error('Expenses query error:', expensesError);
+      toast({
+        title: "Error al cargar gastos",
+        description: "No se pudieron cargar los gastos del día seleccionado",
+        variant: "destructive",
+      });
+    }
+  }, [salesError, expensesError, toast]);
 
   // Redirect to home if not authenticated
   useEffect(() => {
