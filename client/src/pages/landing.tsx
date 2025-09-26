@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, TrendingUp, Users, Smartphone } from "lucide-react";
+import { signInWithGoogle } from "@/lib/authUtils";
 
 export default function Landing() {
   return (
@@ -18,8 +19,8 @@ export default function Landing() {
                 <p className="text-sm text-muted-foreground">R&M Store - Córdoba, Argentina</p>
               </div>
             </div>
-            <Button 
-              onClick={() => window.location.href = "/api/login"}
+            <Button
+              onClick={signInWithGoogle}
               size="lg"
               data-testid="button-login"
             >
@@ -40,10 +41,10 @@ export default function Landing() {
               El sistema completo para administrar ventas, inventario, clientes y finanzas de tu kiosco. 
               Con API segura para tu asistente móvil y análisis inteligentes.
             </p>
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               className="text-lg px-8 py-4"
-              onClick={() => window.location.href = "/api/login"}
+              onClick={signInWithGoogle}
               data-testid="button-get-started"
             >
               Comenzar Ahora

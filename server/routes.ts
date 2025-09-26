@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth, isAuthenticated } from "./supabaseAuth";
 import { z } from "zod";
 import crypto from "crypto";
 import { 
@@ -51,7 +51,10 @@ export async function registerRoutes(app: Express, needsHttpServer: boolean = fa
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user?.id || req.session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Usuario no encontrado" });
+      }
       const user = await storage.getUser(userId);
       res.json(user);
     } catch (error) {
@@ -414,7 +417,7 @@ export async function registerRoutes(app: Express, needsHttpServer: boolean = fa
   app.post('/api/cash-closings', isAuthenticated, async (req, res) => {
     try {
       // Security: Never trust client for closedBy - use authenticated user
-      const userId = (req as any).user?.claims?.sub;
+      const userId = (req as any).user?.id || (req as any).session?.user?.id;
       if (!userId) {
         return res.status(401).json({ message: "Usuario no autenticado" });
       }

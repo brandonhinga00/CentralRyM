@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
+import { supabase, getCurrentUser } from "../lib/authUtils";
 
 export function useAuth() {
   const { data: user, isLoading } = useQuery({
-    queryKey: ["/api/auth/user"],
+    queryKey: ["auth-user"],
+    queryFn: getCurrentUser,
     retry: false,
   });
 
