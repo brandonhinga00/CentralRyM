@@ -72,6 +72,7 @@ export default function Finances() {
       return await response.json();
     },
     enabled: !!selectedDate,
+    placeholderData: [],
   });
 
   const { data: dailyExpenses = [], isLoading: expensesLoading, error: expensesError } = useQuery({
@@ -81,6 +82,7 @@ export default function Finances() {
       return await response.json();
     },
     enabled: !!selectedDate,
+    placeholderData: [],
   });
 
   const { data: dailyPayments = [], isLoading: paymentsLoading, error: paymentsError } = useQuery({
@@ -90,6 +92,7 @@ export default function Finances() {
       return await response.json();
     },
     enabled: !!selectedDate,
+    placeholderData: [],
   });
 
   // Handle API errors
