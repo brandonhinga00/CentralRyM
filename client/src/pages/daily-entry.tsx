@@ -17,7 +17,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, Plus, Search, QrCode, ShoppingCart, User, DollarSign, Receipt, Calculator, TrendingDown } from "lucide-react";
+import { Calendar, Plus, Search, QrCode, ShoppingCart, User, DollarSign, Receipt, Calculator, TrendingDown, FileText } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { insertSaleSchema, insertSaleItemSchema, insertExpenseSchema, type Product, type Customer, type Sale, type Expense } from "@shared/schema";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -299,28 +299,32 @@ export default function DailyEntry() {
 
   const formattedDate = format(new Date(), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es });
   
-  // Daily calculations
-  const totalSales = Array.isArray(dailySales) ? dailySales.reduce((sum: number, sale: any) => sum + parseFloat(sale.totalAmount || 0), 0) : 0;
+  // Daily calculations - consistent with dashboard (exclude fiado from total sales)
+  const paidSales = Array.isArray(dailySales) ? dailySales.filter((sale: any) => sale.paymentMethod !== 'fiado') : [];
+  const fiadoSales = Array.isArray(dailySales) ? dailySales.filter((sale: any) => sale.paymentMethod === 'fiado') : [];
+
+  const totalSales = paidSales.reduce((sum: number, sale: any) => sum + parseFloat(sale.totalAmount || 0), 0);
+  const totalFiado = fiadoSales.reduce((sum: number, sale: any) => sum + parseFloat(sale.totalAmount || 0), 0);
   const totalExpenses = Array.isArray(dailyExpenses) ? dailyExpenses.reduce((sum: number, expense: any) => sum + parseFloat(expense.amount || 0), 0) : 0;
-  
-  // Sales by payment method
-  const salesByMethod = Array.isArray(dailySales) ? dailySales.reduce((acc: any, sale: any) => {
+
+  // Sales by payment method (only paid sales)
+  const salesByMethod = paidSales.reduce((acc: any, sale: any) => {
     const method = sale.paymentMethod || 'efectivo';
     acc[method] = (acc[method] || 0) + parseFloat(sale.totalAmount || 0);
     return acc;
-  }, {}) : {};
-  
+  }, {});
+
   // Expenses by payment method
   const expensesByMethod = Array.isArray(dailyExpenses) ? dailyExpenses.reduce((acc: any, expense: any) => {
     const method = expense.paymentMethod || 'efectivo';
     acc[method] = (acc[method] || 0) + parseFloat(expense.amount || 0);
     return acc;
   }, {}) : {};
-  
+
   // Net totals by payment method
   const netCash = (salesByMethod.efectivo || 0) - (expensesByMethod.efectivo || 0);
   const netTransfer = (salesByMethod.transferencia || 0) - (expensesByMethod.transferencia || 0);
-  const netFiado = salesByMethod.fiado || 0;
+  const netFiado = totalFiado; // Fiado is credit given, not actual income
   const netTotal = totalSales - totalExpenses;
 
   return (
@@ -369,14 +373,23 @@ export default function DailyEntry() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                 <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-green-600 dark:text-green-400">Ventas Totales</p>
+                      <p className="text-sm text-green-600 dark:text-green-400">Ventas Pagadas</p>
                       <p className="text-2xl font-bold text-green-700 dark:text-green-300">${totalSales.toFixed(2)}</p>
                     </div>
                     <ShoppingCart className="h-8 w-8 text-green-600" />
+                  </div>
+                </div>
+                <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-orange-600 dark:text-orange-400">Fiado Otorgado</p>
+                      <p className="text-2xl font-bold text-orange-700 dark:text-orange-300">${totalFiado.toFixed(2)}</p>
+                    </div>
+                    <FileText className="h-8 w-8 text-orange-600" />
                   </div>
                 </div>
                 <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
