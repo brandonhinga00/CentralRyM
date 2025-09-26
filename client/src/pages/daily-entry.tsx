@@ -57,9 +57,7 @@ export default function DailyEntry() {
    const { isAuthenticated, isLoading } = useAuth();
    const [selectedDate, setSelectedDate] = useState(() => {
      // Always start with today's date
-     const today = format(new Date(), 'yyyy-MM-dd');
-     console.log('DailyEntry initialized with date:', today);
-     return today;
+     return format(new Date(), 'yyyy-MM-dd');
    });
 
   const [productSearch, setProductSearch] = useState("");
@@ -122,25 +120,13 @@ export default function DailyEntry() {
 
   const { data: dailySales = [], isLoading: salesLoading, refetch: refetchSales, error: salesError } = useQuery({
     queryKey: ['/api/sales', selectedDate],
-    queryFn: async () => {
-      console.log('Fetching sales for date:', selectedDate);
-      const response = await apiRequest("GET", `/api/sales?startDate=${selectedDate}&endDate=${selectedDate}`);
-      const data = await response.json();
-      console.log('Sales API response data:', data);
-      return data;
-    },
+    queryFn: () => apiRequest("GET", `/api/sales?startDate=${selectedDate}&endDate=${selectedDate}`),
     enabled: !!selectedDate,
   });
 
   const { data: dailyExpenses = [], isLoading: expensesLoading, refetch: refetchExpenses, error: expensesError } = useQuery({
     queryKey: ['/api/expenses', selectedDate],
-    queryFn: async () => {
-      console.log('Fetching expenses for date:', selectedDate);
-      const response = await apiRequest("GET", `/api/expenses?startDate=${selectedDate}&endDate=${selectedDate}`);
-      const data = await response.json();
-      console.log('Expenses API response data:', data);
-      return data;
-    },
+    queryFn: () => apiRequest("GET", `/api/expenses?startDate=${selectedDate}&endDate=${selectedDate}`),
     enabled: !!selectedDate,
   });
 
@@ -227,7 +213,6 @@ export default function DailyEntry() {
   // Handle API errors
   useEffect(() => {
     if (salesError) {
-      console.error('Sales query error:', salesError);
       toast({
         title: "Error al cargar ventas",
         description: "No se pudieron cargar las ventas del día seleccionado",
@@ -235,7 +220,6 @@ export default function DailyEntry() {
       });
     }
     if (expensesError) {
-      console.error('Expenses query error:', expensesError);
       toast({
         title: "Error al cargar gastos",
         description: "No se pudieron cargar los gastos del día seleccionado",
