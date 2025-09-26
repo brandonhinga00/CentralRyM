@@ -5,7 +5,6 @@ import { format } from "date-fns";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
 import SalesSummary from "@/components/dashboard/sales-summary";
-import QuickSaleForm from "@/components/dashboard/quick-sale-form";
 import StockAlerts from "@/components/dashboard/stock-alerts";
 import DailySales from "@/components/dashboard/daily-sales";
 import TopDebtors from "@/components/dashboard/top-debtors";
@@ -93,15 +92,8 @@ export default function Dashboard() {
           {/* Resumen del Día */}
           <SalesSummary date={selectedDate} />
           
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Carga Rápida */}
-            <div className="lg:col-span-2">
-              <QuickSaleForm />
-            </div>
-            
-            {/* Alertas de Stock */}
-            <StockAlerts />
-          </div>
+          {/* Alertas de Stock */}
+          <StockAlerts />
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Ventas del Día */}
