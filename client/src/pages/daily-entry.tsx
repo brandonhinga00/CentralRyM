@@ -53,12 +53,14 @@ type QuickSaleData = z.infer<typeof quickSaleSchema>;
 type ExpenseData = z.infer<typeof expenseSchema>;
 
 export default function DailyEntry() {
-  const { toast } = useToast();
-  const { isAuthenticated, isLoading } = useAuth();
-  const [selectedDate, setSelectedDate] = useState(() => {
-    // Always start with today's date
-    return format(new Date(), 'yyyy-MM-dd');
-  });
+   const { toast } = useToast();
+   const { isAuthenticated, isLoading } = useAuth();
+   const [selectedDate, setSelectedDate] = useState(() => {
+     // Always start with today's date
+     const today = format(new Date(), 'yyyy-MM-dd');
+     console.log('DailyEntry initialized with date:', today);
+     return today;
+   });
 
   const [productSearch, setProductSearch] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
@@ -120,16 +122,20 @@ export default function DailyEntry() {
 
   const { data: dailySales = [], isLoading: salesLoading, refetch: refetchSales } = useQuery({
     queryKey: ['/api/sales', selectedDate],
-    queryFn: () => apiRequest("GET", `/api/sales?startDate=${selectedDate}&endDate=${selectedDate}`),
+    queryFn: () => {
+      console.log('Fetching sales for date:', selectedDate);
+      return apiRequest("GET", `/api/sales?startDate=${selectedDate}&endDate=${selectedDate}`);
+    },
     enabled: !!selectedDate,
-    placeholderData: [],
   });
 
   const { data: dailyExpenses = [], isLoading: expensesLoading, refetch: refetchExpenses } = useQuery({
     queryKey: ['/api/expenses', selectedDate],
-    queryFn: () => apiRequest("GET", `/api/expenses?startDate=${selectedDate}&endDate=${selectedDate}`),
+    queryFn: () => {
+      console.log('Fetching expenses for date:', selectedDate);
+      return apiRequest("GET", `/api/expenses?startDate=${selectedDate}&endDate=${selectedDate}`);
+    },
     enabled: !!selectedDate,
-    placeholderData: [],
   });
 
   // Filter products based on search
