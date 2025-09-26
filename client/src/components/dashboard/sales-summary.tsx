@@ -38,7 +38,8 @@ export default function SalesSummary({ date }: SalesSummaryProps) {
     salesCount: 0,
   };
 
-  const balance = (summaryData.totalSales || 0) + (summaryData.debtCollected || 0);
+  // Balance = ventas pagadas (totalSales - creditGiven) + pagos recibidos
+  const balance = ((summaryData.totalSales || 0) - (summaryData.creditGiven || 0)) + (summaryData.debtCollected || 0);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -56,7 +57,7 @@ export default function SalesSummary({ date }: SalesSummaryProps) {
             </div>
           </div>
           <p className="text-xs text-green-600 mt-2">
-            {summaryData.salesCount || 0} operaciones
+            {summaryData.salesCount || 0} operaciones (incluye fiado)
           </p>
         </CardContent>
       </Card>

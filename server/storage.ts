@@ -758,16 +758,16 @@ export class DatabaseStorage implements IStorage {
     salesCount: number;
     apiSalesCount: number;
   }> {
-    // Total sales for the day
+    // Total sales for the day (including all payment methods)
     const totalSalesResult = await db
       .select({
         total: sql<number>`COALESCE(SUM(${sales.totalAmount}), 0)`,
         count: sql<number>`COUNT(*)`,
       })
       .from(sales)
-      .where(and(eq(sales.saleDate, date), ne(sales.paymentMethod, "fiado")));
+      .where(eq(sales.saleDate, date));
 
-    // Credit given (fiado sales)
+    // Credit given (fiado sales) - for backward compatibility
     const creditGivenResult = await db
       .select({
         total: sql<number>`COALESCE(SUM(${sales.totalAmount}), 0)`,
