@@ -3,14 +3,15 @@ import session from 'express-session';
 import type { Express, RequestHandler } from 'express';
 import connectPg from 'connect-pg-simple';
 import { storage } from './storage';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_ANON_KEY!;
-export const supabase = createClient(supabaseUrl, supabaseKey);
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+export const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error('SUPABASE_URL and SUPABASE_ANON_KEY must be set');
+if (!supabaseUrl || !supabaseServiceKey) {
+  throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set');
 }
 
 export function getSession() {
@@ -83,6 +84,17 @@ export async function setupAuth(app: Express) {
       if (error) {
         res.status(500).json({ error: error.message });
       } else {
+        // Upsert user to database
+        if (data.user) {
+          await storage.upsertUser({
+            id: data.user.id,
+            email: data.user.email,
+            firstName: data.user.user_metadata?.first_name || data.user.user_metadata?.name?.split(' ')[0],
+            lastName: data.user.user_metadata?.last_name || data.user.user_metadata?.name?.split(' ').slice(1).join(' '),
+            profileImageUrl: data.user.user_metadata?.avatar_url,
+          });
+        }
+
         // Store session
         (req.session as any).user = data.user;
         (req.session as any).access_token = data.session?.access_token;
