@@ -37,7 +37,7 @@ import {
   type InsertCashClosing,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, asc, sql, and, gte, lte, like, ne } from "drizzle-orm";
+import { eq, desc, asc, sql, and, gte, lte, like, ilike, ne } from "drizzle-orm";
 
 // Interface for storage operations
 export interface IStorage {
@@ -49,14 +49,20 @@ export interface IStorage {
   getSuppliers(): Promise<Supplier[]>;
   getSupplier(id: string): Promise<Supplier | undefined>;
   createSupplier(supplier: InsertSupplier): Promise<Supplier>;
-  updateSupplier(id: string, supplier: Partial<InsertSupplier>): Promise<Supplier>;
+  updateSupplier(
+    id: string,
+    supplier: Partial<InsertSupplier>,
+  ): Promise<Supplier>;
   deleteSupplier(id: string): Promise<void>;
 
   // Category operations
   getCategories(): Promise<Category[]>;
   getCategory(id: string): Promise<Category | undefined>;
   createCategory(category: InsertCategory): Promise<Category>;
-  updateCategory(id: string, category: Partial<InsertCategory>): Promise<Category>;
+  updateCategory(
+    id: string,
+    category: Partial<InsertCategory>,
+  ): Promise<Category>;
   deleteCategory(id: string): Promise<void>;
 
   // Product operations
@@ -76,13 +82,19 @@ export interface IStorage {
   searchCustomers(query: string): Promise<Customer[]>;
   getCustomersWithDebt(): Promise<Customer[]>;
   createCustomer(customer: InsertCustomer): Promise<Customer>;
-  updateCustomer(id: string, customer: Partial<InsertCustomer>): Promise<Customer>;
+  updateCustomer(
+    id: string,
+    customer: Partial<InsertCustomer>,
+  ): Promise<Customer>;
   updateCustomerDebt(id: string, newDebt: number): Promise<Customer>;
   deleteCustomer(id: string): Promise<void>;
 
   // Sale operations
   getSales(startDate?: string, endDate?: string): Promise<Sale[]>;
-  getSalesWithItems(startDate?: string, endDate?: string): Promise<(Sale & { saleItems: (SaleItem & { product: Product })[] })[]>;
+  getSalesWithItems(
+    startDate?: string,
+    endDate?: string,
+  ): Promise<(Sale & { saleItems: (SaleItem & { product: Product })[] })[]>;
   getSale(id: string): Promise<Sale | undefined>;
   getSalesByCustomer(customerId: string): Promise<Sale[]>;
   createSale(sale: InsertSale, items: InsertSaleItem[]): Promise<Sale>;
@@ -103,7 +115,11 @@ export interface IStorage {
   deleteExpense(id: string): Promise<void>;
 
   // Stock movement operations
-  getStockMovements(productId?: string, startDate?: string, endDate?: string): Promise<StockMovement[]>;
+  getStockMovements(
+    productId?: string,
+    startDate?: string,
+    endDate?: string,
+  ): Promise<StockMovement[]>;
   createStockMovement(movement: InsertStockMovement): Promise<StockMovement>;
 
   // API key operations
@@ -113,12 +129,12 @@ export interface IStorage {
   updateApiKey(id: string, apiKey: Partial<InsertApiKey>): Promise<ApiKey>;
   deleteApiKey(id: string): Promise<void>;
 
-  // Cash closing operations  
+  // Cash closing operations
   getCashClosings(startDate?: string, endDate?: string): Promise<CashClosing[]>;
   getCashClosing(id: string): Promise<CashClosing | undefined>;
   getCashClosingByDate(date: string): Promise<CashClosing | undefined>;
   createCashClosing(cashClosing: InsertCashClosing): Promise<CashClosing>;
-  
+
   // Dashboard operations
   getDailySummary(date: string): Promise<{
     totalSales: number;
@@ -158,16 +174,25 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getSupplier(id: string): Promise<Supplier | undefined> {
-    const [supplier] = await db.select().from(suppliers).where(eq(suppliers.id, id));
+    const [supplier] = await db
+      .select()
+      .from(suppliers)
+      .where(eq(suppliers.id, id));
     return supplier;
   }
 
   async createSupplier(supplier: InsertSupplier): Promise<Supplier> {
-    const [newSupplier] = await db.insert(suppliers).values(supplier).returning();
+    const [newSupplier] = await db
+      .insert(suppliers)
+      .values(supplier)
+      .returning();
     return newSupplier;
   }
 
-  async updateSupplier(id: string, supplier: Partial<InsertSupplier>): Promise<Supplier> {
+  async updateSupplier(
+    id: string,
+    supplier: Partial<InsertSupplier>,
+  ): Promise<Supplier> {
     const [updatedSupplier] = await db
       .update(suppliers)
       .set({ ...supplier, updatedAt: new Date() })
@@ -186,16 +211,25 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCategory(id: string): Promise<Category | undefined> {
-    const [category] = await db.select().from(categories).where(eq(categories.id, id));
+    const [category] = await db
+      .select()
+      .from(categories)
+      .where(eq(categories.id, id));
     return category;
   }
 
   async createCategory(category: InsertCategory): Promise<Category> {
-    const [newCategory] = await db.insert(categories).values(category).returning();
+    const [newCategory] = await db
+      .insert(categories)
+      .values(category)
+      .returning();
     return newCategory;
   }
 
-  async updateCategory(id: string, category: Partial<InsertCategory>): Promise<Category> {
+  async updateCategory(
+    id: string,
+    category: Partial<InsertCategory>,
+  ): Promise<Category> {
     const [updatedCategory] = await db
       .update(categories)
       .set(category)
@@ -210,16 +244,26 @@ export class DatabaseStorage implements IStorage {
 
   // Product operations
   async getProducts(): Promise<Product[]> {
-    return await db.select().from(products).where(eq(products.isActive, true)).orderBy(asc(products.name));
+    return await db
+      .select()
+      .from(products)
+      .where(eq(products.isActive, true))
+      .orderBy(asc(products.name));
   }
 
   async getProduct(id: string): Promise<Product | undefined> {
-    const [product] = await db.select().from(products).where(eq(products.id, id));
+    const [product] = await db
+      .select()
+      .from(products)
+      .where(eq(products.id, id));
     return product;
   }
 
   async getProductByBarcode(barcode: string): Promise<Product | undefined> {
-    const [product] = await db.select().from(products).where(eq(products.barcode, barcode));
+    const [product] = await db
+      .select()
+      .from(products)
+      .where(eq(products.barcode, barcode));
     return product;
   }
 
@@ -228,10 +272,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(products)
       .where(
-        and(
-          eq(products.isActive, true),
-          like(products.name, `%${query}%`)
-        )
+        and(eq(products.isActive, true), ilike(products.name, `%${query}%`)),
       )
       .orderBy(asc(products.name))
       .limit(20);
@@ -244,8 +285,8 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(
           eq(products.isActive, true),
-          sql`${products.currentStock} <= ${products.minStock}`
-        )
+          sql`${products.currentStock} <= ${products.minStock}`,
+        ),
       )
       .orderBy(asc(products.currentStock));
   }
@@ -255,7 +296,10 @@ export class DatabaseStorage implements IStorage {
     return newProduct;
   }
 
-  async updateProduct(id: string, product: Partial<InsertProduct>): Promise<Product> {
+  async updateProduct(
+    id: string,
+    product: Partial<InsertProduct>,
+  ): Promise<Product> {
     const [updatedProduct] = await db
       .update(products)
       .set({ ...product, updatedAt: new Date() })
@@ -274,16 +318,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteProduct(id: string): Promise<void> {
-    await db.update(products).set({ isActive: false }).where(eq(products.id, id));
+    await db
+      .update(products)
+      .set({ isActive: false })
+      .where(eq(products.id, id));
   }
 
   // Customer operations
   async getCustomers(): Promise<Customer[]> {
-    return await db.select().from(customers).where(eq(customers.isActive, true)).orderBy(asc(customers.name));
+    return await db
+      .select()
+      .from(customers)
+      .where(eq(customers.isActive, true))
+      .orderBy(asc(customers.name));
   }
 
   async getCustomer(id: string): Promise<Customer | undefined> {
-    const [customer] = await db.select().from(customers).where(eq(customers.id, id));
+    const [customer] = await db
+      .select()
+      .from(customers)
+      .where(eq(customers.id, id));
     return customer;
   }
 
@@ -292,10 +346,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(customers)
       .where(
-        and(
-          eq(customers.isActive, true),
-          like(customers.name, `%${query}%`)
-        )
+        and(eq(customers.isActive, true), ilike(customers.name, `%${query}%`)),
       )
       .orderBy(asc(customers.name))
       .limit(20);
@@ -306,20 +357,23 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(customers)
       .where(
-        and(
-          eq(customers.isActive, true),
-          sql`${customers.currentDebt} > 0`
-        )
+        and(eq(customers.isActive, true), sql`${customers.currentDebt} > 0`),
       )
       .orderBy(desc(customers.currentDebt));
   }
 
   async createCustomer(customer: InsertCustomer): Promise<Customer> {
-    const [newCustomer] = await db.insert(customers).values(customer).returning();
+    const [newCustomer] = await db
+      .insert(customers)
+      .values(customer)
+      .returning();
     return newCustomer;
   }
 
-  async updateCustomer(id: string, customer: Partial<InsertCustomer>): Promise<Customer> {
+  async updateCustomer(
+    id: string,
+    customer: Partial<InsertCustomer>,
+  ): Promise<Customer> {
     const [updatedCustomer] = await db
       .update(customers)
       .set({ ...customer, updatedAt: new Date() })
@@ -338,35 +392,44 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteCustomer(id: string): Promise<void> {
-    await db.update(customers).set({ isActive: false }).where(eq(customers.id, id));
+    await db
+      .update(customers)
+      .set({ isActive: false })
+      .where(eq(customers.id, id));
   }
 
   // Sale operations
   async getSales(startDate?: string, endDate?: string): Promise<Sale[]> {
     let query = db.select().from(sales);
-    
+
     if (startDate || endDate) {
       const conditions = [];
       if (startDate) conditions.push(gte(sales.saleDate, startDate));
       if (endDate) conditions.push(lte(sales.saleDate, endDate));
       query = query.where(and(...conditions));
     }
-    
+
     return await query.orderBy(desc(sales.saleDate), desc(sales.createdAt));
   }
 
-  async getSalesWithItems(startDate?: string, endDate?: string): Promise<(Sale & { saleItems: (SaleItem & { product: Product })[] })[]> {
+  async getSalesWithItems(
+    startDate?: string,
+    endDate?: string,
+  ): Promise<(Sale & { saleItems: (SaleItem & { product: Product })[] })[]> {
     let salesQuery = db.select().from(sales);
-    
+
     if (startDate || endDate) {
       const conditions = [];
       if (startDate) conditions.push(gte(sales.saleDate, startDate));
       if (endDate) conditions.push(lte(sales.saleDate, endDate));
       salesQuery = salesQuery.where(and(...conditions));
     }
-    
-    const salesData = await salesQuery.orderBy(desc(sales.saleDate), desc(sales.createdAt));
-    
+
+    const salesData = await salesQuery.orderBy(
+      desc(sales.saleDate),
+      desc(sales.createdAt),
+    );
+
     const salesWithItems = await Promise.all(
       salesData.map(async (sale) => {
         const items = await db
@@ -383,11 +446,11 @@ export class DatabaseStorage implements IStorage {
           .from(saleItems)
           .innerJoin(products, eq(saleItems.productId, products.id))
           .where(eq(saleItems.saleId, sale.id));
-        
+
         return { ...sale, saleItems: items };
-      })
+      }),
     );
-    
+
     return salesWithItems;
   }
 
@@ -407,11 +470,14 @@ export class DatabaseStorage implements IStorage {
   async createSale(sale: InsertSale, items: InsertSaleItem[]): Promise<Sale> {
     return await db.transaction(async (tx) => {
       const [newSale] = await tx.insert(sales).values(sale).returning();
-      
+
       // Insert sale items
-      const saleItemsWithSaleId = items.map(item => ({ ...item, saleId: newSale.id }));
+      const saleItemsWithSaleId = items.map((item) => ({
+        ...item,
+        saleId: newSale.id,
+      }));
       await tx.insert(saleItems).values(saleItemsWithSaleId);
-      
+
       // Update stock for each product
       for (const item of items) {
         await tx
@@ -421,19 +487,19 @@ export class DatabaseStorage implements IStorage {
             updatedAt: new Date(),
           })
           .where(eq(products.id, item.productId));
-        
+
         // Create stock movement
         await tx.insert(stockMovements).values({
           productId: item.productId,
-          movementType: 'sale',
+          movementType: "sale",
           quantity: (-Number(item.quantity)).toString(),
           reason: `Venta #${newSale.id}`,
           referenceId: newSale.id,
         });
       }
-      
+
       // Update customer debt if payment method is fiado
-      if (sale.paymentMethod === 'fiado' && sale.customerId) {
+      if (sale.paymentMethod === "fiado" && sale.customerId) {
         await tx
           .update(customers)
           .set({
@@ -442,7 +508,7 @@ export class DatabaseStorage implements IStorage {
           })
           .where(eq(customers.id, sale.customerId));
       }
-      
+
       return newSale;
     });
   }
@@ -463,15 +529,18 @@ export class DatabaseStorage implements IStorage {
   // Payment operations
   async getPayments(startDate?: string, endDate?: string): Promise<Payment[]> {
     let query = db.select().from(payments);
-    
+
     if (startDate || endDate) {
       const conditions = [];
       if (startDate) conditions.push(gte(payments.paymentDate, startDate));
       if (endDate) conditions.push(lte(payments.paymentDate, endDate));
       query = query.where(and(...conditions));
     }
-    
-    return await query.orderBy(desc(payments.paymentDate), desc(payments.createdAt));
+
+    return await query.orderBy(
+      desc(payments.paymentDate),
+      desc(payments.createdAt),
+    );
   }
 
   async getPaymentsByCustomer(customerId: string): Promise<Payment[]> {
@@ -484,8 +553,11 @@ export class DatabaseStorage implements IStorage {
 
   async createPayment(payment: InsertPayment): Promise<Payment> {
     return await db.transaction(async (tx) => {
-      const [newPayment] = await tx.insert(payments).values(payment).returning();
-      
+      const [newPayment] = await tx
+        .insert(payments)
+        .values(payment)
+        .returning();
+
       // Update customer debt
       await tx
         .update(customers)
@@ -494,12 +566,15 @@ export class DatabaseStorage implements IStorage {
           updatedAt: new Date(),
         })
         .where(eq(customers.id, payment.customerId));
-      
+
       return newPayment;
     });
   }
 
-  async updatePayment(id: string, payment: Partial<InsertPayment>): Promise<Payment> {
+  async updatePayment(
+    id: string,
+    payment: Partial<InsertPayment>,
+  ): Promise<Payment> {
     const [updatedPayment] = await db
       .update(payments)
       .set(payment)
@@ -515,15 +590,18 @@ export class DatabaseStorage implements IStorage {
   // Expense operations
   async getExpenses(startDate?: string, endDate?: string): Promise<Expense[]> {
     let query = db.select().from(expenses);
-    
+
     if (startDate || endDate) {
       const conditions = [];
       if (startDate) conditions.push(gte(expenses.expenseDate, startDate));
       if (endDate) conditions.push(lte(expenses.expenseDate, endDate));
       query = query.where(and(...conditions));
     }
-    
-    return await query.orderBy(desc(expenses.expenseDate), desc(expenses.createdAt));
+
+    return await query.orderBy(
+      desc(expenses.expenseDate),
+      desc(expenses.createdAt),
+    );
   }
 
   async createExpense(expense: InsertExpense): Promise<Expense> {
@@ -531,7 +609,10 @@ export class DatabaseStorage implements IStorage {
     return newExpense;
   }
 
-  async updateExpense(id: string, expense: Partial<InsertExpense>): Promise<Expense> {
+  async updateExpense(
+    id: string,
+    expense: Partial<InsertExpense>,
+  ): Promise<Expense> {
     const [updatedExpense] = await db
       .update(expenses)
       .set(expense)
@@ -545,23 +626,34 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Stock movement operations
-  async getStockMovements(productId?: string, startDate?: string, endDate?: string): Promise<StockMovement[]> {
+  async getStockMovements(
+    productId?: string,
+    startDate?: string,
+    endDate?: string,
+  ): Promise<StockMovement[]> {
     let query = db.select().from(stockMovements);
-    
+
     const conditions = [];
     if (productId) conditions.push(eq(stockMovements.productId, productId));
-    if (startDate) conditions.push(gte(stockMovements.createdAt, new Date(startDate)));
-    if (endDate) conditions.push(lte(stockMovements.createdAt, new Date(endDate)));
-    
+    if (startDate)
+      conditions.push(gte(stockMovements.createdAt, new Date(startDate)));
+    if (endDate)
+      conditions.push(lte(stockMovements.createdAt, new Date(endDate)));
+
     if (conditions.length > 0) {
       query = query.where(and(...conditions));
     }
-    
+
     return await query.orderBy(desc(stockMovements.createdAt));
   }
 
-  async createStockMovement(movement: InsertStockMovement): Promise<StockMovement> {
-    const [newMovement] = await db.insert(stockMovements).values(movement).returning();
+  async createStockMovement(
+    movement: InsertStockMovement,
+  ): Promise<StockMovement> {
+    const [newMovement] = await db
+      .insert(stockMovements)
+      .values(movement)
+      .returning();
     return newMovement;
   }
 
@@ -571,7 +663,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getApiKeyByHash(hash: string): Promise<ApiKey | undefined> {
-    const [apiKey] = await db.select().from(apiKeys).where(and(eq(apiKeys.keyHash, hash), eq(apiKeys.isActive, true)));
+    const [apiKey] = await db
+      .select()
+      .from(apiKeys)
+      .where(and(eq(apiKeys.keyHash, hash), eq(apiKeys.isActive, true)));
     return apiKey;
   }
 
@@ -580,7 +675,10 @@ export class DatabaseStorage implements IStorage {
     return newApiKey;
   }
 
-  async updateApiKey(id: string, apiKey: Partial<InsertApiKey>): Promise<ApiKey> {
+  async updateApiKey(
+    id: string,
+    apiKey: Partial<InsertApiKey>,
+  ): Promise<ApiKey> {
     const [updatedApiKey] = await db
       .update(apiKeys)
       .set(apiKey)
@@ -609,7 +707,7 @@ export class DatabaseStorage implements IStorage {
         count: sql<number>`COUNT(*)`,
       })
       .from(sales)
-      .where(and(eq(sales.saleDate, date), ne(sales.paymentMethod, 'fiado')));
+      .where(and(eq(sales.saleDate, date), ne(sales.paymentMethod, "fiado")));
 
     // Credit given (fiado sales)
     const creditGivenResult = await db
@@ -617,7 +715,7 @@ export class DatabaseStorage implements IStorage {
         total: sql<number>`COALESCE(SUM(${sales.totalAmount}), 0)`,
       })
       .from(sales)
-      .where(and(eq(sales.saleDate, date), eq(sales.paymentMethod, 'fiado')));
+      .where(and(eq(sales.saleDate, date), eq(sales.paymentMethod, "fiado")));
 
     // Debt collected (payments)
     const debtCollectedResult = await db
@@ -641,7 +739,7 @@ export class DatabaseStorage implements IStorage {
         count: sql<number>`COUNT(*)`,
       })
       .from(sales)
-      .where(and(eq(sales.saleDate, date), eq(sales.entryMethod, 'api')));
+      .where(and(eq(sales.saleDate, date), eq(sales.entryMethod, "api")));
 
     return {
       totalSales: Number(totalSalesResult[0]?.total || 0),
@@ -654,35 +752,51 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Cash closing operations
-  async getCashClosings(startDate?: string, endDate?: string): Promise<CashClosing[]> {
+  async getCashClosings(
+    startDate?: string,
+    endDate?: string,
+  ): Promise<CashClosing[]> {
     let query = db.select().from(cashClosings);
-    
+
     if (startDate && endDate) {
-      query = query.where(and(
-        gte(cashClosings.closingDate, startDate),
-        lte(cashClosings.closingDate, endDate)
-      ));
+      query = query.where(
+        and(
+          gte(cashClosings.closingDate, startDate),
+          lte(cashClosings.closingDate, endDate),
+        ),
+      );
     } else if (startDate) {
       query = query.where(gte(cashClosings.closingDate, startDate));
     } else if (endDate) {
       query = query.where(lte(cashClosings.closingDate, endDate));
     }
-    
+
     return await query.orderBy(desc(cashClosings.closingDate));
   }
 
   async getCashClosing(id: string): Promise<CashClosing | undefined> {
-    const [cashClosing] = await db.select().from(cashClosings).where(eq(cashClosings.id, id));
+    const [cashClosing] = await db
+      .select()
+      .from(cashClosings)
+      .where(eq(cashClosings.id, id));
     return cashClosing;
   }
 
   async getCashClosingByDate(date: string): Promise<CashClosing | undefined> {
-    const [cashClosing] = await db.select().from(cashClosings).where(eq(cashClosings.closingDate, date));
+    const [cashClosing] = await db
+      .select()
+      .from(cashClosings)
+      .where(eq(cashClosings.closingDate, date));
     return cashClosing;
   }
 
-  async createCashClosing(cashClosingData: InsertCashClosing): Promise<CashClosing> {
-    const [newCashClosing] = await db.insert(cashClosings).values(cashClosingData).returning();
+  async createCashClosing(
+    cashClosingData: InsertCashClosing,
+  ): Promise<CashClosing> {
+    const [newCashClosing] = await db
+      .insert(cashClosings)
+      .values(cashClosingData)
+      .returning();
     return newCashClosing;
   }
 }
