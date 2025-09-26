@@ -3,7 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -13,7 +19,9 @@ import { isUnauthorizedError } from "@/lib/authUtils";
 export default function QuickSaleForm() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [selectedDate, setSelectedDate] = useState(
+    format(new Date(), "yyyy-MM-dd"),
+  );
   const [productSearch, setProductSearch] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
   const [quantity, setQuantity] = useState("1");
@@ -23,13 +31,16 @@ export default function QuickSaleForm() {
 
   // Search products
   const { data: products } = useQuery({
-    queryKey: ['/api/products/search', productSearch],
+    queryKey: ["/api/products/search", productSearch],
     queryFn: async () => {
-      const response = await fetch(`/api/products/search?q=${encodeURIComponent(productSearch)}`, {
-        credentials: 'include',
-      });
+      const response = await fetch(
+        `/api/products/search?q=${encodeURIComponent(productSearch)}`,
+        {
+          credentials: "include",
+        },
+      );
       if (!response.ok) {
-        throw new Error('Error al buscar productos');
+        throw new Error("Error al buscar productos");
       }
       return response.json();
     },
@@ -39,17 +50,20 @@ export default function QuickSaleForm() {
 
   // Search customers
   const { data: customers } = useQuery({
-    queryKey: ['/api/customers/search', customerSearch],
+    queryKey: ["/api/customers/search", customerSearch],
     queryFn: async () => {
-      const response = await fetch(`/api/customers/search?q=${encodeURIComponent(customerSearch)}`, {
-        credentials: 'include',
-      });
+      const response = await fetch(
+        `/api/customers/search?q=${encodeURIComponent(customerSearch)}`,
+        {
+          credentials: "include",
+        },
+      );
       if (!response.ok) {
-        throw new Error('Error al buscar clientes');
+        throw new Error("Error al buscar clientes");
       }
       return response.json();
     },
-    enabled: customerSearch.length > 2 && paymentMethod === 'fiado',
+    enabled: customerSearch.length > 2 && paymentMethod === "fiado",
     retry: false,
   });
 
@@ -70,8 +84,10 @@ export default function QuickSaleForm() {
       setSelectedProduct(null);
       setSelectedCustomer(null);
       // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/recent-sales'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/summary"] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/dashboard/recent-sales"],
+      });
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
@@ -95,21 +111,21 @@ export default function QuickSaleForm() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     console.log("Form submission data:", {
       selectedProduct,
       paymentMethod,
       quantity,
       selectedCustomer,
       productSearch,
-      customerSearch
+      customerSearch,
     });
-    
+
     if (!selectedProduct || !paymentMethod || !quantity) {
       console.log("Validation failed:", {
         hasProduct: !!selectedProduct,
         hasPaymentMethod: !!paymentMethod,
-        hasQuantity: !!quantity
+        hasQuantity: !!quantity,
       });
       toast({
         title: "Error",
@@ -129,7 +145,7 @@ export default function QuickSaleForm() {
     }
 
     const totalAmount = Number(selectedProduct.salePrice) * Number(quantity);
-    
+
     const saleData = {
       sale: {
         saleDate: selectedDate,
@@ -139,12 +155,14 @@ export default function QuickSaleForm() {
         isPaid: paymentMethod !== "fiado",
         entryMethod: "manual",
       },
-      items: [{
-        productId: selectedProduct.id,
-        quantity: quantity,
-        unitPrice: selectedProduct.salePrice,
-        totalPrice: totalAmount.toString(),
-      }]
+      items: [
+        {
+          productId: selectedProduct.id,
+          quantity: quantity,
+          unitPrice: selectedProduct.salePrice,
+          totalPrice: totalAmount.toString(),
+        },
+      ],
     };
 
     createSaleMutation.mutate(saleData);
@@ -170,7 +188,7 @@ export default function QuickSaleForm() {
           </div>
         </div>
       </CardHeader>
-      
+
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -185,7 +203,9 @@ export default function QuickSaleForm() {
                   className="pr-10"
                   data-testid="input-product-search"
                 />
-                <span className="absolute right-3 top-2.5 material-icons text-muted-foreground text-sm">search</span>
+                <span className="absolute right-3 top-2.5 material-icons text-muted-foreground text-sm">
+                  search
+                </span>
               </div>
               {products && (products as any[]).length > 0 && (
                 <div className="mt-1 border border-border rounded-md bg-card max-h-32 overflow-y-auto">
@@ -219,7 +239,7 @@ export default function QuickSaleForm() {
               />
             </div>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="payment-method">Método de Pago</Label>
@@ -243,32 +263,36 @@ export default function QuickSaleForm() {
                   value={customerSearch}
                   onChange={(e) => setCustomerSearch(e.target.value)}
                   className="pr-10"
-                  disabled={paymentMethod !== "fiado"}
+                  //disabled={paymentMethod !== "fiado"}
                   data-testid="input-customer-search"
                 />
-                <span className="absolute right-3 top-2.5 material-icons text-muted-foreground text-sm">search</span>
+                <span className="absolute right-3 top-2.5 material-icons text-muted-foreground text-sm">
+                  search
+                </span>
               </div>
-              {paymentMethod === "fiado" && customers && (customers as any[]).length > 0 && (
-                <div className="mt-1 border border-border rounded-md bg-card max-h-32 overflow-y-auto">
-                  {(customers as any[]).map((customer: any) => (
-                    <button
-                      key={customer.id}
-                      type="button"
-                      className="w-full text-left px-3 py-2 hover:bg-accent text-sm"
-                      onClick={() => {
-                        setSelectedCustomer(customer);
-                        setCustomerSearch(customer.name);
-                      }}
-                      data-testid={`option-customer-${customer.id}`}
-                    >
-                      {customer.name}
-                    </button>
-                  ))}
-                </div>
-              )}
+              {paymentMethod === "fiado" &&
+                customers &&
+                (customers as any[]).length > 0 && (
+                  <div className="mt-1 border border-border rounded-md bg-card max-h-32 overflow-y-auto">
+                    {(customers as any[]).map((customer: any) => (
+                      <button
+                        key={customer.id}
+                        type="button"
+                        className="w-full text-left px-3 py-2 hover:bg-accent text-sm"
+                        onClick={() => {
+                          setSelectedCustomer(customer);
+                          setCustomerSearch(customer.name);
+                        }}
+                        data-testid={`option-customer-${customer.id}`}
+                      >
+                        {customer.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
             </div>
           </div>
-          
+
           <div className="flex space-x-3">
             <Button
               type="submit"
@@ -277,7 +301,11 @@ export default function QuickSaleForm() {
               data-testid="button-register-sale"
             >
               <span className="material-icons">add_shopping_cart</span>
-              <span>{createSaleMutation.isPending ? "Registrando..." : "Registrar Venta"}</span>
+              <span>
+                {createSaleMutation.isPending
+                  ? "Registrando..."
+                  : "Registrar Venta"}
+              </span>
             </Button>
             <Button
               type="button"
