@@ -629,6 +629,19 @@ export default function DailyEntry() {
                     );
                   })()}
                   
+                  {/* Debug form errors - mostrar qué campos faltan */}
+                  {!form.formState.isValid && (
+                    <div className="text-sm text-muted-foreground p-3 bg-muted rounded-lg">
+                      <p className="font-medium mb-2">Campos requeridos:</p>
+                      <ul className="space-y-1">
+                        {!form.watch("productId") && <li>• Selecciona un producto</li>}
+                        {!form.watch("unitPrice") && <li>• Ingresa el precio</li>}
+                        {!form.watch("quantity") && <li>• Ingresa la cantidad</li>}
+                        {form.watch("paymentMethod") === "fiado" && !form.watch("customerId") && <li>• Selecciona un cliente (para fiado)</li>}
+                      </ul>
+                    </div>
+                  )}
+                  
                   <div className="flex space-x-3">
                     <Button 
                       type="submit" 
