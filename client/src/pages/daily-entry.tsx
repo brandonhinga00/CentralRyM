@@ -124,9 +124,10 @@ export default function DailyEntry() {
     queryKey: ['/api/sales', selectedDate],
     queryFn: async () => {
       console.log('Fetching sales for date:', selectedDate);
-      const result = await apiRequest("GET", `/api/sales?startDate=${selectedDate}&endDate=${selectedDate}`);
-      console.log('Sales API response:', result);
-      return result;
+      const response = await apiRequest("GET", `/api/sales?startDate=${selectedDate}&endDate=${selectedDate}`);
+      const data = await response.json();
+      console.log('Sales API response data:', data);
+      return data;
     },
     enabled: !!selectedDate,
   });
@@ -135,9 +136,10 @@ export default function DailyEntry() {
     queryKey: ['/api/expenses', selectedDate],
     queryFn: async () => {
       console.log('Fetching expenses for date:', selectedDate);
-      const result = await apiRequest("GET", `/api/expenses?startDate=${selectedDate}&endDate=${selectedDate}`);
-      console.log('Expenses API response:', result);
-      return result;
+      const response = await apiRequest("GET", `/api/expenses?startDate=${selectedDate}&endDate=${selectedDate}`);
+      const data = await response.json();
+      console.log('Expenses API response data:', data);
+      return data;
     },
     enabled: !!selectedDate,
   });
