@@ -256,11 +256,18 @@ export async function registerRoutes(app: Express, needsHttpServer: boolean = fa
   // Sale routes
   app.get('/api/sales', isAuthenticated, async (req, res) => {
     try {
-      const { startDate, endDate } = req.query;
-      const sales = await storage.getSalesWithItems(
-        startDate as string,
-        endDate as string
-      );
+      const { startDate, endDate, customerId } = req.query;
+      let sales;
+      
+      if (customerId) {
+        sales = await storage.getSalesWithItemsByCustomer(customerId as string);
+      } else {
+        sales = await storage.getSalesWithItems(
+          startDate as string,
+          endDate as string
+        );
+      }
+      
       res.json(sales);
     } catch (error) {
       console.error("Error fetching sales:", error);

@@ -155,7 +155,7 @@ export default function Customers() {
     queryKey: ['/api/sales', 'customer', accountCustomer?.id],
     queryFn: async () => {
       if (!accountCustomer) return [];
-      const response = await apiRequest("GET", `/api/sales?customerId=${accountCustomer.id}&paymentMethod=fiado`);
+      const response = await apiRequest("GET", `/api/sales?customerId=${accountCustomer.id}`);
       return response.json();
     },
     enabled: !!accountCustomer?.id && isAccountDialogOpen,

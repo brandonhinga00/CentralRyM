@@ -97,6 +97,9 @@ export interface IStorage {
   ): Promise<(Sale & { saleItems: (SaleItem & { product: Product })[] })[]>;
   getSale(id: string): Promise<Sale | undefined>;
   getSalesByCustomer(customerId: string): Promise<Sale[]>;
+  getSalesWithItemsByCustomer(
+    customerId: string,
+  ): Promise<(Sale & { saleItems: (SaleItem & { product: Product })[] })[]>;
   createSale(sale: InsertSale, items: InsertSaleItem[]): Promise<Sale>;
   updateSale(id: string, sale: Partial<InsertSale>): Promise<Sale>;
   deleteSale(id: string): Promise<void>;
@@ -476,6 +479,39 @@ export class DatabaseStorage implements IStorage {
       .from(sales)
       .where(eq(sales.customerId, customerId))
       .orderBy(desc(sales.saleDate));
+  }
+
+  async getSalesWithItemsByCustomer(
+    customerId: string,
+  ): Promise<(Sale & { saleItems: (SaleItem & { product: Product })[] })[]> {
+    const salesData = await db
+      .select()
+      .from(sales)
+      .where(eq(sales.customerId, customerId))
+      .orderBy(desc(sales.saleDate));
+
+    const salesWithItems = await Promise.all(
+      salesData.map(async (sale) => {
+        const items = await db
+          .select({
+            id: saleItems.id,
+            saleId: saleItems.saleId,
+            productId: saleItems.productId,
+            quantity: saleItems.quantity,
+            unitPrice: saleItems.unitPrice,
+            totalPrice: saleItems.totalPrice,
+            createdAt: saleItems.createdAt,
+            product: products,
+          })
+          .from(saleItems)
+          .innerJoin(products, eq(saleItems.productId, products.id))
+          .where(eq(saleItems.saleId, sale.id));
+
+        return { ...sale, saleItems: items };
+      }),
+    );
+
+    return salesWithItems;
   }
 
   async createSale(sale: InsertSale, items: InsertSaleItem[]): Promise<Sale> {
