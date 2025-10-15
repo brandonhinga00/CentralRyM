@@ -42,6 +42,7 @@ export const users = pgTable("users", {
 // Suppliers table
 export const suppliers = pgTable("suppliers", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
   name: text("name").notNull(),
   contactPerson: text("contact_person"),
   phone: varchar("phone"),
@@ -55,6 +56,7 @@ export const suppliers = pgTable("suppliers", {
 // Categories table
 export const categories = pgTable("categories", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
   name: text("name").notNull(),
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -63,6 +65,7 @@ export const categories = pgTable("categories", {
 // Products table
 export const products = pgTable("products", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
   name: text("name").notNull(),
   barcode: varchar("barcode"),
   category: varchar("category"), // Changed from categoryId to category as free text
@@ -81,6 +84,7 @@ export const products = pgTable("products", {
 // Customers table
 export const customers = pgTable("customers", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
   name: text("name").notNull(),
   phone: varchar("phone"),
   email: varchar("email"),
@@ -97,6 +101,7 @@ export const customers = pgTable("customers", {
 // Sales table
 export const sales = pgTable("sales", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
   saleDate: date("sale_date").notNull(),
   customerId: varchar("customer_id").references(() => customers.id),
   paymentMethod: varchar("payment_method").notNull(), // efectivo, transferencia, fiado
@@ -122,6 +127,7 @@ export const saleItems = pgTable("sale_items", {
 // Payments table (for customer debt payments)
 export const payments = pgTable("payments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
   customerId: varchar("customer_id").references(() => customers.id).notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   paymentDate: date("payment_date").notNull(),
@@ -134,6 +140,7 @@ export const payments = pgTable("payments", {
 // Expenses table
 export const expenses = pgTable("expenses", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
   description: text("description").notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   expenseDate: date("expense_date").notNull(),
@@ -178,6 +185,7 @@ export const cashClosings = pgTable("cash_closings", {
 // Stock movements table
 export const stockMovements = pgTable("stock_movements", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
   productId: varchar("product_id").references(() => products.id).notNull(),
   movementType: varchar("movement_type").notNull(), // sale, purchase, adjustment
   quantity: decimal("quantity", { precision: 10, scale: 3 }).notNull(), // positive for in, negative for out
@@ -189,6 +197,7 @@ export const stockMovements = pgTable("stock_movements", {
 // API keys table for mobile assistant security
 export const apiKeys = pgTable("api_keys", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
   keyName: text("key_name").notNull(),
   keyHash: text("key_hash").notNull(),
   isActive: boolean("is_active").default(true),
@@ -272,18 +281,21 @@ export const stockMovementsRelations = relations(stockMovements, ({ one }) => ({
 // Insert schemas
 export const insertSupplierSchema = createInsertSchema(suppliers).omit({
   id: true,
+  userId: true,
   createdAt: true,
   updatedAt: true,
 });
 
 export const insertCategorySchema = createInsertSchema(categories).omit({
   id: true,
+  userId: true,
   createdAt: true,
 });
 
 export const insertProductSchema = createInsertSchema(products)
   .omit({
     id: true,
+    userId: true,
     createdAt: true,
     updatedAt: true,
   })
@@ -299,12 +311,14 @@ export const insertProductSchema = createInsertSchema(products)
 
 export const insertCustomerSchema = createInsertSchema(customers).omit({
   id: true,
+  userId: true,
   createdAt: true,
   updatedAt: true,
 });
 
 export const insertSaleSchema = createInsertSchema(sales).omit({
   id: true,
+  userId: true,
   createdAt: true,
   updatedAt: true,
 });
@@ -317,16 +331,19 @@ export const insertSaleItemSchema = createInsertSchema(saleItems).omit({
 
 export const insertPaymentSchema = createInsertSchema(payments).omit({
   id: true,
+  userId: true,
   createdAt: true,
 });
 
 export const insertExpenseSchema = createInsertSchema(expenses).omit({
   id: true,
+  userId: true,
   createdAt: true,
 });
 
 export const insertStockMovementSchema = createInsertSchema(stockMovements).omit({
   id: true,
+  userId: true,
   createdAt: true,
 });
 
@@ -337,6 +354,7 @@ export const insertCashClosingSchema = createInsertSchema(cashClosings).omit({
 
 export const insertApiKeySchema = createInsertSchema(apiKeys).omit({
   id: true,
+  userId: true,
   createdAt: true,
 });
 

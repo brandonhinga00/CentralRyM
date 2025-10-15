@@ -159,7 +159,11 @@ export async function registerRoutes(app: Express, needsHttpServer: boolean = fa
       console.log("Received product data:", req.body);
       const productData = insertProductSchema.parse(req.body);
       console.log("Parsed product data:", productData);
-      const product = await storage.createProduct(productData);
+      const userId = (req as any).user?.id || (req as any).session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Usuario no autenticado" });
+      }
+      const product = await storage.createProduct(productData, userId);
       console.log("Created product:", product);
       res.status(201).json(product);
     } catch (error) {
@@ -230,7 +234,11 @@ export async function registerRoutes(app: Express, needsHttpServer: boolean = fa
   app.post('/api/customers', isAuthenticated, async (req, res) => {
     try {
       const customerData = insertCustomerSchema.parse(req.body);
-      const customer = await storage.createCustomer(customerData);
+      const userId = (req as any).user?.id || (req as any).session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Usuario no autenticado" });
+      }
+      const customer = await storage.createCustomer(customerData, userId);
       res.status(201).json(customer);
     } catch (error) {
       console.error("Error creating customer:", error);
@@ -286,8 +294,12 @@ export async function registerRoutes(app: Express, needsHttpServer: boolean = fa
       const { sale, items } = req.body;
       const saleData = insertSaleSchema.parse(sale);
       const itemsData = z.array(insertSaleItemSchema).parse(items);
-      
-      const newSale = await storage.createSale(saleData, itemsData);
+      const userId = (req as any).user?.id || (req as any).session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Usuario no autenticado" });
+      }
+
+      const newSale = await storage.createSale(saleData, itemsData, userId);
       res.status(201).json(newSale);
     } catch (error) {
       console.error("Error creating sale:", error);
@@ -320,30 +332,34 @@ export async function registerRoutes(app: Express, needsHttpServer: boolean = fa
   app.post('/api/payments', isAuthenticated, async (req, res) => {
     try {
       const paymentData = insertPaymentSchema.parse(req.body);
-      
+      const userId = (req as any).user?.id || (req as any).session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Usuario no autenticado" });
+      }
+
       // Validate payment amount is positive
       const paymentAmount = Number(paymentData.amount);
       if (!isFinite(paymentAmount) || paymentAmount <= 0) {
-        return res.status(400).json({ 
-          message: "El monto del pago debe ser un número positivo válido" 
+        return res.status(400).json({
+          message: "El monto del pago debe ser un número positivo válido"
         });
       }
-      
+
       // Validate overpayment prevention
       if (paymentData.customerId) {
         const customer = await storage.getCustomer(paymentData.customerId);
         if (customer) {
           const currentDebt = Number(customer.currentDebt || 0);
-          
+
           if (paymentAmount > currentDebt) {
-            return res.status(400).json({ 
-              message: `El pago de $${paymentAmount.toFixed(2)} excede la deuda actual de $${currentDebt.toFixed(2)}` 
+            return res.status(400).json({
+              message: `El pago de $${paymentAmount.toFixed(2)} excede la deuda actual de $${currentDebt.toFixed(2)}`
             });
           }
         }
       }
-      
-      const payment = await storage.createPayment(paymentData);
+
+      const payment = await storage.createPayment(paymentData, userId);
       res.status(201).json(payment);
     } catch (error) {
       console.error("Error creating payment:", error);
@@ -369,7 +385,11 @@ export async function registerRoutes(app: Express, needsHttpServer: boolean = fa
   app.post('/api/expenses', isAuthenticated, async (req, res) => {
     try {
       const expenseData = insertExpenseSchema.parse(req.body);
-      const expense = await storage.createExpense(expenseData);
+      const userId = (req as any).user?.id || (req as any).session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Usuario no autenticado" });
+      }
+      const expense = await storage.createExpense(expenseData, userId);
       res.status(201).json(expense);
     } catch (error) {
       console.error("Error creating expense:", error);
@@ -460,7 +480,11 @@ export async function registerRoutes(app: Express, needsHttpServer: boolean = fa
   app.post('/api/suppliers', isAuthenticated, async (req, res) => {
     try {
       const supplierData = insertSupplierSchema.parse(req.body);
-      const supplier = await storage.createSupplier(supplierData);
+      const userId = (req as any).user?.id || (req as any).session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Usuario no autenticado" });
+      }
+      const supplier = await storage.createSupplier(supplierData, userId);
       res.status(201).json(supplier);
     } catch (error) {
       console.error("Error creating supplier:", error);
@@ -531,7 +555,11 @@ export async function registerRoutes(app: Express, needsHttpServer: boolean = fa
   app.post('/api/categories', isAuthenticated, async (req, res) => {
     try {
       const categoryData = insertCategorySchema.parse(req.body);
-      const category = await storage.createCategory(categoryData);
+      const userId = (req as any).user?.id || (req as any).session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Usuario no autenticado" });
+      }
+      const category = await storage.createCategory(categoryData, userId);
       res.status(201).json(category);
     } catch (error) {
       console.error("Error creating category:", error);
@@ -558,20 +586,24 @@ export async function registerRoutes(app: Express, needsHttpServer: boolean = fa
   app.post('/api/api-keys', isAuthenticated, async (req, res) => {
     try {
       const { keyName, permissions } = req.body;
-      
+      const userId = (req as any).user?.id || (req as any).session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Usuario no autenticado" });
+      }
+
       // Generate a random API key
       const apiKey = crypto.randomBytes(32).toString('hex');
       const keyHash = crypto.createHash('sha256').update(apiKey).digest('hex');
-      
+
       const apiKeyData = insertApiKeySchema.parse({
         keyName,
         keyHash,
         permissions,
         isActive: true,
       });
-      
-      const newApiKey = await storage.createApiKey(apiKeyData);
-      
+
+      const newApiKey = await storage.createApiKey(apiKeyData, userId);
+
       // Return the plain key only once
       res.status(201).json({
         ...newApiKey,
@@ -760,7 +792,8 @@ export async function registerRoutes(app: Express, needsHttpServer: boolean = fa
         notes: 'Venta registrada desde asistente móvil',
       };
       
-      const sale = await storage.createSale(saleData, saleItems);
+      const userId = req.apiKey.userId;
+      const sale = await storage.createSale(saleData, saleItems, (req as any).apiKey.userId);
       
       res.status(201).json({
         sale: {
@@ -809,7 +842,7 @@ export async function registerRoutes(app: Express, needsHttpServer: boolean = fa
         notes: 'Pago registrado desde asistente móvil',
       };
       
-      const payment = await storage.createPayment(paymentData);
+      const payment = await storage.createPayment(paymentData, (req as any).apiKey.userId);
       
       res.status(201).json({
         payment: {
@@ -849,7 +882,7 @@ export async function registerRoutes(app: Express, needsHttpServer: boolean = fa
         movementType: 'adjustment',
         quantity: (stock - Number(product.currentStock || 0)).toString(),
         reason: reason || 'Ajuste desde asistente móvil',
-      });
+      }, (req as any).apiKey.userId);
       
       res.json({
         product: {

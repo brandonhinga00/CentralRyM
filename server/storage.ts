@@ -48,7 +48,7 @@ export interface IStorage {
   // Supplier operations
   getSuppliers(): Promise<Supplier[]>;
   getSupplier(id: string): Promise<Supplier | undefined>;
-  createSupplier(supplier: InsertSupplier): Promise<Supplier>;
+  createSupplier(supplier: InsertSupplier, userId: string): Promise<Supplier>;
   updateSupplier(
     id: string,
     supplier: Partial<InsertSupplier>,
@@ -58,7 +58,7 @@ export interface IStorage {
   // Category operations
   getCategories(): Promise<Category[]>;
   getCategory(id: string): Promise<Category | undefined>;
-  createCategory(category: InsertCategory): Promise<Category>;
+  createCategory(category: InsertCategory, userId: string): Promise<Category>;
   updateCategory(
     id: string,
     category: Partial<InsertCategory>,
@@ -71,7 +71,7 @@ export interface IStorage {
   getProductByBarcode(barcode: string): Promise<Product | undefined>;
   searchProducts(query: string): Promise<Product[]>;
   getLowStockProducts(): Promise<Product[]>;
-  createProduct(product: InsertProduct): Promise<Product>;
+  createProduct(product: InsertProduct, userId: string): Promise<Product>;
   updateProduct(id: string, product: Partial<InsertProduct>): Promise<Product>;
   updateProductStock(id: string, newStock: number): Promise<Product>;
   deleteProduct(id: string): Promise<void>;
@@ -81,7 +81,7 @@ export interface IStorage {
   getCustomer(id: string): Promise<Customer | undefined>;
   searchCustomers(query: string): Promise<Customer[]>;
   getCustomersWithDebt(): Promise<Customer[]>;
-  createCustomer(customer: InsertCustomer): Promise<Customer>;
+  createCustomer(customer: InsertCustomer, userId: string): Promise<Customer>;
   updateCustomer(
     id: string,
     customer: Partial<InsertCustomer>,
@@ -100,20 +100,20 @@ export interface IStorage {
   getSalesWithItemsByCustomer(
     customerId: string,
   ): Promise<(Sale & { saleItems: (SaleItem & { product: Product })[] })[]>;
-  createSale(sale: InsertSale, items: InsertSaleItem[]): Promise<Sale>;
+  createSale(sale: InsertSale, items: InsertSaleItem[], userId: string): Promise<Sale>;
   updateSale(id: string, sale: Partial<InsertSale>): Promise<Sale>;
   deleteSale(id: string): Promise<void>;
 
   // Payment operations
   getPayments(startDate?: string, endDate?: string): Promise<Payment[]>;
   getPaymentsByCustomer(customerId: string): Promise<Payment[]>;
-  createPayment(payment: InsertPayment): Promise<Payment>;
+  createPayment(payment: InsertPayment, userId: string): Promise<Payment>;
   updatePayment(id: string, payment: Partial<InsertPayment>): Promise<Payment>;
   deletePayment(id: string): Promise<void>;
 
   // Expense operations
   getExpenses(startDate?: string, endDate?: string): Promise<Expense[]>;
-  createExpense(expense: InsertExpense): Promise<Expense>;
+  createExpense(expense: InsertExpense, userId: string): Promise<Expense>;
   updateExpense(id: string, expense: Partial<InsertExpense>): Promise<Expense>;
   deleteExpense(id: string): Promise<void>;
 
@@ -123,12 +123,12 @@ export interface IStorage {
     startDate?: string,
     endDate?: string,
   ): Promise<StockMovement[]>;
-  createStockMovement(movement: InsertStockMovement): Promise<StockMovement>;
+  createStockMovement(movement: InsertStockMovement, userId: string): Promise<StockMovement>;
 
   // API key operations
   getApiKeys(): Promise<ApiKey[]>;
   getApiKeyByHash(hash: string): Promise<ApiKey | undefined>;
-  createApiKey(apiKey: InsertApiKey): Promise<ApiKey>;
+  createApiKey(apiKey: InsertApiKey, userId: string): Promise<ApiKey>;
   updateApiKey(id: string, apiKey: Partial<InsertApiKey>): Promise<ApiKey>;
   deleteApiKey(id: string): Promise<void>;
 
@@ -184,10 +184,10 @@ export class DatabaseStorage implements IStorage {
     return supplier;
   }
 
-  async createSupplier(supplier: InsertSupplier): Promise<Supplier> {
+  async createSupplier(supplier: InsertSupplier, userId: string): Promise<Supplier> {
     const [newSupplier] = await db
       .insert(suppliers)
-      .values(supplier)
+      .values({ ...supplier, userId })
       .returning();
     return newSupplier;
   }
@@ -221,10 +221,10 @@ export class DatabaseStorage implements IStorage {
     return category;
   }
 
-  async createCategory(category: InsertCategory): Promise<Category> {
+  async createCategory(category: InsertCategory, userId: string): Promise<Category> {
     const [newCategory] = await db
       .insert(categories)
-      .values(category)
+      .values({ ...category, userId })
       .returning();
     return newCategory;
   }
@@ -294,8 +294,8 @@ export class DatabaseStorage implements IStorage {
       .orderBy(asc(products.currentStock));
   }
 
-  async createProduct(product: InsertProduct): Promise<Product> {
-    const [newProduct] = await db.insert(products).values(product).returning();
+  async createProduct(product: InsertProduct, userId: string): Promise<Product> {
+    const [newProduct] = await db.insert(products).values({ ...product, userId }).returning();
     return newProduct;
   }
 
@@ -365,10 +365,10 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(customers.currentDebt));
   }
 
-  async createCustomer(customer: InsertCustomer): Promise<Customer> {
+  async createCustomer(customer: InsertCustomer, userId: string): Promise<Customer> {
     const [newCustomer] = await db
       .insert(customers)
-      .values(customer)
+      .values({ ...customer, userId })
       .returning();
     return newCustomer;
   }
@@ -514,9 +514,9 @@ export class DatabaseStorage implements IStorage {
     return salesWithItems;
   }
 
-  async createSale(sale: InsertSale, items: InsertSaleItem[]): Promise<Sale> {
+  async createSale(sale: InsertSale, items: InsertSaleItem[], userId: string): Promise<Sale> {
     return await db.transaction(async (tx) => {
-      const [newSale] = await tx.insert(sales).values(sale).returning();
+      const [newSale] = await tx.insert(sales).values({ ...sale, userId }).returning();
 
       // Insert sale items
       const saleItemsWithSaleId = items.map((item) => ({
@@ -537,6 +537,7 @@ export class DatabaseStorage implements IStorage {
 
         // Create stock movement
         await tx.insert(stockMovements).values({
+          userId,
           productId: item.productId,
           movementType: "sale",
           quantity: (-Number(item.quantity)).toString(),
@@ -601,11 +602,11 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(payments.paymentDate));
   }
 
-  async createPayment(payment: InsertPayment): Promise<Payment> {
+  async createPayment(payment: InsertPayment, userId: string): Promise<Payment> {
     return await db.transaction(async (tx) => {
       const [newPayment] = await tx
         .insert(payments)
-        .values(payment)
+        .values({ ...payment, userId })
         .returning();
 
       // Update customer debt
@@ -657,8 +658,8 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(expenses.expenseDate), desc(expenses.createdAt));
   }
 
-  async createExpense(expense: InsertExpense): Promise<Expense> {
-    const [newExpense] = await db.insert(expenses).values(expense).returning();
+  async createExpense(expense: InsertExpense, userId: string): Promise<Expense> {
+    const [newExpense] = await db.insert(expenses).values({ ...expense, userId }).returning();
     return newExpense;
   }
 
@@ -707,10 +708,11 @@ export class DatabaseStorage implements IStorage {
 
   async createStockMovement(
     movement: InsertStockMovement,
+    userId: string,
   ): Promise<StockMovement> {
     const [newMovement] = await db
       .insert(stockMovements)
-      .values(movement)
+      .values({ ...movement, userId })
       .returning();
     return newMovement;
   }
@@ -728,8 +730,8 @@ export class DatabaseStorage implements IStorage {
     return apiKey;
   }
 
-  async createApiKey(apiKey: InsertApiKey): Promise<ApiKey> {
-    const [newApiKey] = await db.insert(apiKeys).values(apiKey).returning();
+  async createApiKey(apiKey: InsertApiKey, userId: string): Promise<ApiKey> {
+    const [newApiKey] = await db.insert(apiKeys).values({ ...apiKey, userId }).returning();
     return newApiKey;
   }
 
