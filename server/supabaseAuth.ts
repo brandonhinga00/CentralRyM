@@ -49,6 +49,14 @@ export async function setupAuth(app: Express) {
       try {
         const { data: { user }, error } = await supabase.auth.getUser(token);
         if (user && !error) {
+          // Ensure user exists in our database
+          await storage.upsertUser({
+            id: user.id,
+            email: user.email,
+            firstName: user.user_metadata?.first_name || user.user_metadata?.name?.split(' ')[0],
+            lastName: user.user_metadata?.last_name || user.user_metadata?.name?.split(' ').slice(1).join(' '),
+            profileImageUrl: user.user_metadata?.avatar_url,
+          });
           req.user = user;
         }
       } catch (err) {
