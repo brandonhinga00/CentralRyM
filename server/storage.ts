@@ -277,35 +277,14 @@ export class DatabaseStorage implements IStorage {
 
   // Product operations
   async getProducts(userId?: string): Promise<Product[]> {
-    // For RLS to work, we need to use Supabase client with user context
-    // This ensures RLS policies are properly enforced
-    const supabase = getSupabaseClient();
-
+    // Use direct database queries with user filtering
+    // This is simpler and more reliable than trying to use Supabase client for RLS
     if (userId) {
-      try {
-        // Set the user context for RLS by using the service role client
-        // RLS will be enforced based on the user_id column
-        const { data, error } = await supabase
-          .from('products')
-          .select('*')
-          .eq('is_active', true)
-          .eq('user_id', userId)
-          .order('name');
-
-        if (error) {
-          console.error('Supabase query error:', error);
-          throw error;
-        }
-        return data as Product[];
-      } catch (error) {
-        console.error('Error in getProducts with Supabase:', error);
-        // Fallback to direct database query if Supabase fails
-        return await db
-          .select()
-          .from(products)
-          .where(and(eq(products.isActive, true), eq(products.userId, userId)))
-          .orderBy(asc(products.name));
-      }
+      return await db
+        .select()
+        .from(products)
+        .where(and(eq(products.isActive, true), eq(products.userId, userId)))
+        .orderBy(asc(products.name));
     }
 
     // Fallback for cases without user context (should not happen in production)
