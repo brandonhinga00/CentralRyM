@@ -77,7 +77,8 @@ export async function registerRoutes(app: Express, needsHttpServer: boolean = fa
 
   app.get('/api/dashboard/low-stock', isAuthenticated, async (req, res) => {
     try {
-      const lowStockProducts = await storage.getLowStockProducts();
+      const userId = (req as any).user?.id || (req as any).session?.user?.id;
+      const lowStockProducts = await storage.getLowStockProducts(userId);
       res.json(lowStockProducts);
     } catch (error) {
       console.error("Error getting low stock products:", error);
@@ -87,7 +88,8 @@ export async function registerRoutes(app: Express, needsHttpServer: boolean = fa
 
   app.get('/api/dashboard/top-debtors', isAuthenticated, async (req, res) => {
     try {
-      const debtors = await storage.getCustomersWithDebt();
+      const userId = (req as any).user?.id || (req as any).session?.user?.id;
+      const debtors = await storage.getCustomersWithDebt(userId);
       res.json(debtors.slice(0, 10)); // Top 10 debtors
     } catch (error) {
       console.error("Error getting top debtors:", error);
@@ -97,7 +99,8 @@ export async function registerRoutes(app: Express, needsHttpServer: boolean = fa
 
   app.get('/api/customers/with-debt', isAuthenticated, async (req, res) => {
     try {
-      const debtors = await storage.getCustomersWithDebt();
+      const userId = (req as any).user?.id || (req as any).session?.user?.id;
+      const debtors = await storage.getCustomersWithDebt(userId);
       res.json(debtors); // All customers with debt
     } catch (error) {
       console.error("Error getting customers with debt:", error);
@@ -108,7 +111,8 @@ export async function registerRoutes(app: Express, needsHttpServer: boolean = fa
   app.get('/api/dashboard/recent-sales/:date', isAuthenticated, async (req, res) => {
     try {
       const { date } = req.params;
-      const salesWithItems = await storage.getSalesWithItems(date, date);
+      const userId = (req as any).user?.id || (req as any).session?.user?.id;
+      const salesWithItems = await storage.getSalesWithItems(date, date, userId);
       res.json(salesWithItems);
     } catch (error) {
       console.error("Error getting recent sales:", error);
@@ -119,7 +123,8 @@ export async function registerRoutes(app: Express, needsHttpServer: boolean = fa
   // Product routes
   app.get('/api/products', isAuthenticated, async (req, res) => {
     try {
-      const products = await storage.getProducts();
+      const userId = (req as any).user?.id || (req as any).session?.user?.id;
+      const products = await storage.getProducts(userId);
       res.json(products);
     } catch (error) {
       console.error("Error fetching products:", error);
@@ -133,7 +138,8 @@ export async function registerRoutes(app: Express, needsHttpServer: boolean = fa
       if (!q || typeof q !== 'string') {
         return res.status(400).json({ message: "Parámetro de búsqueda requerido" });
       }
-      const products = await storage.searchProducts(q);
+      const userId = (req as any).user?.id || (req as any).session?.user?.id;
+      const products = await storage.searchProducts(q, userId);
       res.json(products);
     } catch (error) {
       console.error("Error searching products:", error);
@@ -196,7 +202,8 @@ export async function registerRoutes(app: Express, needsHttpServer: boolean = fa
   // Customer routes
   app.get('/api/customers', isAuthenticated, async (req, res) => {
     try {
-      const customers = await storage.getCustomers();
+      const userId = (req as any).user?.id || (req as any).session?.user?.id;
+      const customers = await storage.getCustomers(userId);
       res.json(customers);
     } catch (error) {
       console.error("Error fetching customers:", error);
@@ -210,7 +217,8 @@ export async function registerRoutes(app: Express, needsHttpServer: boolean = fa
       if (!q || typeof q !== 'string') {
         return res.status(400).json({ message: "Parámetro de búsqueda requerido" });
       }
-      const customers = await storage.searchCustomers(q);
+      const userId = (req as any).user?.id || (req as any).session?.user?.id;
+      const customers = await storage.searchCustomers(q, userId);
       res.json(customers);
     } catch (error) {
       console.error("Error searching customers:", error);
@@ -271,17 +279,19 @@ export async function registerRoutes(app: Express, needsHttpServer: boolean = fa
   app.get('/api/sales', isAuthenticated, async (req, res) => {
     try {
       const { startDate, endDate, customerId } = req.query;
+      const userId = (req as any).user?.id || (req as any).session?.user?.id;
       let sales;
-      
+
       if (customerId) {
-        sales = await storage.getSalesWithItemsByCustomer(customerId as string);
+        sales = await storage.getSalesWithItemsByCustomer(customerId as string, userId);
       } else {
         sales = await storage.getSalesWithItems(
           startDate as string,
-          endDate as string
+          endDate as string,
+          userId
         );
       }
-      
+
       res.json(sales);
     } catch (error) {
       console.error("Error fetching sales:", error);
@@ -311,17 +321,19 @@ export async function registerRoutes(app: Express, needsHttpServer: boolean = fa
   app.get('/api/payments', isAuthenticated, async (req, res) => {
     try {
       const { startDate, endDate, customerId } = req.query;
+      const userId = (req as any).user?.id || (req as any).session?.user?.id;
       let payments;
-      
+
       if (customerId) {
-        payments = await storage.getPaymentsByCustomer(customerId as string);
+        payments = await storage.getPaymentsByCustomer(customerId as string, userId);
       } else {
         payments = await storage.getPayments(
           startDate as string,
-          endDate as string
+          endDate as string,
+          userId
         );
       }
-      
+
       res.json(payments);
     } catch (error) {
       console.error("Error fetching payments:", error);
@@ -371,9 +383,11 @@ export async function registerRoutes(app: Express, needsHttpServer: boolean = fa
   app.get('/api/expenses', isAuthenticated, async (req, res) => {
     try {
       const { startDate, endDate } = req.query;
+      const userId = (req as any).user?.id || (req as any).session?.user?.id;
       const expenses = await storage.getExpenses(
         startDate as string,
-        endDate as string
+        endDate as string,
+        userId
       );
       res.json(expenses);
     } catch (error) {
@@ -401,9 +415,11 @@ export async function registerRoutes(app: Express, needsHttpServer: boolean = fa
   app.get('/api/cash-closings', isAuthenticated, async (req, res) => {
     try {
       const { startDate, endDate } = req.query;
+      const userId = (req as any).user?.id || (req as any).session?.user?.id;
       const cashClosings = await storage.getCashClosings(
         startDate as string,
-        endDate as string
+        endDate as string,
+        userId
       );
       res.json(cashClosings);
     } catch (error) {
@@ -469,7 +485,8 @@ export async function registerRoutes(app: Express, needsHttpServer: boolean = fa
   // Supplier routes
   app.get('/api/suppliers', isAuthenticated, async (req, res) => {
     try {
-      const suppliers = await storage.getSuppliers();
+      const userId = (req as any).user?.id || (req as any).session?.user?.id;
+      const suppliers = await storage.getSuppliers(userId);
       res.json(suppliers);
     } catch (error) {
       console.error("Error fetching suppliers:", error);
@@ -517,7 +534,8 @@ export async function registerRoutes(app: Express, needsHttpServer: boolean = fa
 
   app.get('/api/purchase-suggestions', isAuthenticated, async (req, res) => {
     try {
-      const products = await storage.getProducts();
+      const userId = (req as any).user?.id || (req as any).session?.user?.id;
+      const products = await storage.getProducts(userId);
       const suggestions = products
         .filter(product => {
           const currentStock = product.currentStock ?? 0;
@@ -544,7 +562,8 @@ export async function registerRoutes(app: Express, needsHttpServer: boolean = fa
   // Category routes
   app.get('/api/categories', isAuthenticated, async (req, res) => {
     try {
-      const categories = await storage.getCategories();
+      const userId = (req as any).user?.id || (req as any).session?.user?.id;
+      const categories = await storage.getCategories(userId);
       res.json(categories);
     } catch (error) {
       console.error("Error fetching categories:", error);
@@ -570,7 +589,8 @@ export async function registerRoutes(app: Express, needsHttpServer: boolean = fa
   // API Key management routes
   app.get('/api/api-keys', isAuthenticated, async (req, res) => {
     try {
-      const apiKeys = await storage.getApiKeys();
+      const userId = (req as any).user?.id || (req as any).session?.user?.id;
+      const apiKeys = await storage.getApiKeys(userId);
       // Don't return the actual hash for security
       const safeApiKeys = apiKeys.map(key => ({
         ...key,
