@@ -21,10 +21,30 @@ const productSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
   barcode: z.string().optional(),
   category: z.string().min(1, "La categoría es requerida"),
-  costPrice: z.string().min(1, "El precio de compra es requerido"),
-  salePrice: z.string().min(1, "El precio de venta es requerido"),
-  currentStock: z.string().min(1, "El stock actual es requerido"),
-  minStock: z.string().min(1, "El stock mínimo es requerido"),
+  costPrice: z.string()
+    .min(1, "El precio de compra es requerido")
+    .refine((val) => {
+      const num = parseFloat(val);
+      return !isNaN(num) && num >= 0;
+    }, "El precio de compra debe ser un número positivo o cero"),
+  salePrice: z.string()
+    .min(1, "El precio de venta es requerido")
+    .refine((val) => {
+      const num = parseFloat(val);
+      return !isNaN(num) && num >= 0;
+    }, "El precio de venta debe ser un número positivo o cero"),
+  currentStock: z.string()
+    .min(1, "El stock actual es requerido")
+    .refine((val) => {
+      const num = parseInt(val);
+      return !isNaN(num) && num >= 0;
+    }, "El stock actual debe ser un número entero positivo o cero"),
+  minStock: z.string()
+    .min(1, "El stock mínimo es requerido")
+    .refine((val) => {
+      const num = parseInt(val);
+      return !isNaN(num) && num >= 0;
+    }, "El stock mínimo debe ser un número entero positivo o cero"),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;

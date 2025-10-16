@@ -302,10 +302,33 @@ export const insertProductSchema = createInsertSchema(products)
   .extend({
     // Allow strings for all numeric fields and convert them
     category: z.string().optional(),
-    costPrice: z.string().optional().transform(val => val && val.trim() !== '' ? val : null),
-    salePrice: z.string().min(1, "El precio de venta es requerido"),
-    currentStock: z.string().min(1, "El stock actual es requerido").transform(val => parseInt(val)),
-    minStock: z.string().min(1, "El stock mínimo es requerido").transform(val => parseInt(val)),
+    costPrice: z.string().optional()
+      .transform(val => val && val.trim() !== '' ? val : null)
+      .refine((val) => {
+        if (val === null) return true; // Allow null
+        const num = parseFloat(val);
+        return !isNaN(num) && num >= 0;
+      }, "El precio de compra debe ser un número positivo o cero"),
+    salePrice: z.string()
+      .min(1, "El precio de venta es requerido")
+      .refine((val) => {
+        const num = parseFloat(val);
+        return !isNaN(num) && num >= 0;
+      }, "El precio de venta debe ser un número positivo o cero"),
+    currentStock: z.string()
+      .min(1, "El stock actual es requerido")
+      .refine((val) => {
+        const num = parseInt(val);
+        return !isNaN(num) && num >= 0;
+      }, "El stock actual debe ser un número entero positivo o cero")
+      .transform(val => parseInt(val)),
+    minStock: z.string()
+      .min(1, "El stock mínimo es requerido")
+      .refine((val) => {
+        const num = parseInt(val);
+        return !isNaN(num) && num >= 0;
+      }, "El stock mínimo debe ser un número entero positivo o cero")
+      .transform(val => parseInt(val)),
     maxStock: z.string().optional().transform(val => val && val.trim() !== '' ? parseInt(val) : null),
   });
 
